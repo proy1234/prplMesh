@@ -194,6 +194,40 @@ int cfg_get_wifi_params(const char iface[BPL_IFNAME_LEN], struct BPL_WLAN_PARAMS
     return retVal;
 }
 
+int cfg_set_wifi_params(const char iface[BPL_IFNAME_LEN], struct BPL_WLAN_PARAMS *wlan_params)
+{
+    int retVal = 0;
+    int index  = 0;
+
+    if (!iface || !wlan_params) {
+        return RETURN_ERR;
+    }
+
+    retVal = cfg_get_index_from_interface(iface, &index);
+    if (retVal) {
+        return retVal;
+    }
+
+    retVal |= cfg_uci_set_wireless_bool(TYPE_RADIO, index, "disabled", wlan_params->enabled);
+    if (wlan_params->channel) {
+        retVal |= cfg_uci_set_wireless_int(TYPE_RADIO, index, "channel", wlan_params->channel);
+    } else {
+        retVal |= cfg_uci_set_wireless(TYPE_RADIO, index, "channel", "auto");
+    }
+
+    retVal |= cfg_uci_set_wireless(TYPE_VAP, index, "ssid", wlan_params->ssid);
+    retVal |= cfg_uci_set_wireless(TYPE_VAP, index, "wav_security_mode", wlan_params->security);
+    std::string mode =
+        std::string(wlan_params->security, strnlen(wlan_params->security, BPL_SEC_LEN));
+    if (mode == BPL_WLAN_SEC_WEP64_STR || mode == BPL_WLAN_SEC_WEP128_STR) {
+        return RETURN_ERR; //not supported for now.
+    } else if (mode != BPL_WLAN_SEC_NONE_STR) {
+        retVal |= cfg_uci_set_wireless(TYPE_VAP, index, "key", wlan_params->passphrase);
+    }
+
+    return retVal;
+}
+
 int cfg_get_backhaul_params(int *max_vaps, int *network_enabled, int *preferred_radio_band)
 {
     int retVal = 0;

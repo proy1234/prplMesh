@@ -76,8 +76,13 @@ namespace bpl {
 
 int cfg_uci_get_wireless_idx(char *interfaceName, int *rpc_index);
 int cfg_uci_get(char *path, char *value, size_t length);
+int cfg_uci_set(char *path, const char *option, const char *value);
 int cfg_uci_get_wireless(enum paramType type, int index, const char param[], char *value);
+int cfg_uci_set_wireless(enum paramType type, int index, const char param[], const char *value);
+int cfg_uci_set_wireless_int(enum paramType type, int index, const char param[], int value);
+int cfg_uci_get_wireless_int(enum paramType type, int index, const char param[], int value);
 int cfg_uci_get_wireless_bool(enum paramType type, int index, const char param[], bool *value);
+int cfg_uci_set_wireless_bool(enum paramType type, int index, const char param[], bool value);
 
 int cfg_uci_get_radio_param_int(int index, const char param[], int *value);
 int cfg_uci_get_radio_param(int index, const char param[], char *value, size_t buf_len);

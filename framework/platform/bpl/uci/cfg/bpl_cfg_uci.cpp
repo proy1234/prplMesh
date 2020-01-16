@@ -43,6 +43,35 @@ int cfg_uci_get(char *path, char *value, size_t length)
     return RETURN_OK;
 }
 
+int cfg_uci_set(char *path, const char *option, const char *value)
+{
+    int status;
+    struct uci_ptr ptr;
+    struct uci_context *cont = uci_alloc_context();
+
+    if (!cont)
+        return RETURN_ERR;
+
+    if ((uci_lookup_ptr(cont, &ptr, path, true) != UCI_OK) || (!ptr.s)) {
+        uci_free_context(cont);
+        return RETURN_ERR;
+    }
+
+    ptr.option = option;
+    ptr.value  = value;
+
+    if (uci_set(cont, &ptr) != UCI_OK) {
+        uci_free_context(cont);
+        return RETURN_ERR;
+    }
+
+    status = uci_save(cont, ptr.p);
+
+    uci_free_context(cont);
+
+    return (status == UCI_OK) ? RETURN_OK : RETURN_ERR;
+}
+
 int cfg_uci_get_wireless_int(enum paramType type, int index, const char param[], int *value)
 {
     int status;
@@ -57,6 +86,18 @@ int cfg_uci_get_wireless_int(enum paramType type, int index, const char param[],
         return RETURN_ERR;
 
     return RETURN_OK;
+}
+
+int cfg_uci_set_wireless_int(enum paramType type, int index, const char param[], int value)
+{
+    char value_str[MAX_UCI_BUF_LEN];
+    int status = snprintf_s(value_str, MAX_UCI_BUF_LEN, "%d", value);
+    if (status <= 0) {
+        ERROR("%s failed snprintf.  value=%d\n", __func__, value);
+        return RETURN_ERR;
+    }
+
+    return cfg_uci_set_wireless(type, index, param, value_str);
 }
 
 int cfg_uci_get_radio_param(int index, const char param[], char *value, size_t buf_len)
@@ -137,6 +178,26 @@ int cfg_uci_get_wireless(enum paramType type, int index, const char param[], cha
     }
 
     return status;
+}
+
+int cfg_uci_set_wireless(enum paramType type, int index, const char param[], const char *value)
+{
+    int status;
+    char path[MAX_UCI_BUF_LEN] = "";
+    char radio_str[]           = "default_radio"; /* == TYPE_VAP */
+
+    if (type == TYPE_RADIO) {
+        strncpy_s(radio_str, sizeof(radio_str), "radio", 5);
+    }
+
+    status = snprintf_s(path, MAX_UCI_BUF_LEN, "wireless.%s%d.%s", radio_str,
+                        UCI_INDEX(type, index), param);
+    if (status <= 0) {
+        ERROR("%s failed snprintf.  index=%d param=%s\n", __func__, index, param);
+        return RETURN_ERR;
+    }
+
+    return cfg_uci_set(path, param, value);
 }
 
 int cfg_uci_get_wireless_radio_idx(const char *interfaceName, int *radio_index)
@@ -286,6 +347,11 @@ int cfg_uci_get_wireless_bool(enum paramType type, int index, const char param[]
     *value = (res != 0) ? true : false;
 
     return RETURN_OK;
+}
+
+int cfg_uci_set_wireless_bool(enum paramType type, int index, const char param[], bool value)
+{
+    return cfg_uci_set_wireless_int(type, index, param, int(value));
 }
 
 } // namespace bpl
