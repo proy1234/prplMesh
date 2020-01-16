@@ -438,7 +438,7 @@ bool slave_thread::handle_cmdu_control_message(Socket *sd,
                                                std::shared_ptr<beerocks_header> beerocks_header)
 {
     // LOG(DEBUG) << "handle_cmdu_control_message(), INTEL_VS: action=" + std::to_string(beerocks_header->action()) + ", action_op=" + std::to_string(beerocks_header->action_op());
-    // LOG(DEBUG) << "received radio_mac=" << network_utils::mac_to_string(beerocks_header->radio_mac()) << ", local radio_mac=" << network_utils::mac_to_string(hostap_params.iface_mac);
+    // LOG(DEBUG) << "received radio_mac=" << network_utils::mac_to_string(beerocks_header->radio_mac()) << ", local radio_mac=" << hostap_params.iface_mac;
 
     // to me or not to me, this is the question...
     if (beerocks_header->actionhdr()->radio_mac() != hostap_params.iface_mac) {
@@ -1954,21 +1954,25 @@ bool slave_thread::handle_cmdu_ap_manager_message(Socket *sd,
         client_association_event_tlv->association_event() =
             wfa_map::tlvClientAssociationEvent::CLIENT_HAS_LEFT_THE_BSS;
 
-        // Add vendor specific tlv
-        auto vs_tlv =
-            message_com::add_vs_tlv<beerocks_message::tlvVsClientAssociationEvent>(cmdu_tx);
+        if (config.no_vendor_specific) {
+            LOG(DEBUG) << "non-Intel, not adding ClientAssociationEvent VS TLV";
+        } else {
+            // Add vendor specific tlv
+            auto vs_tlv =
+                message_com::add_vs_tlv<beerocks_message::tlvVsClientAssociationEvent>(cmdu_tx);
 
-        if (!vs_tlv) {
-            LOG(ERROR) << "add_vs_tlv tlvVsClientAssociationEvent failed";
-            return false;
+            if (!vs_tlv) {
+                LOG(ERROR) << "add_vs_tlv tlvVsClientAssociationEvent failed";
+                return false;
+            }
+
+            vs_tlv->mac()               = notification_in->params().mac;
+            vs_tlv->bssid()             = notification_in->params().bssid;
+            vs_tlv->vap_id()            = notification_in->params().vap_id;
+            vs_tlv->disconnect_reason() = notification_in->params().reason;
+            vs_tlv->disconnect_source() = notification_in->params().source;
+            vs_tlv->disconnect_type()   = notification_in->params().type;
         }
-
-        vs_tlv->mac()               = notification_in->params().mac;
-        vs_tlv->bssid()             = notification_in->params().bssid;
-        vs_tlv->vap_id()            = notification_in->params().vap_id;
-        vs_tlv->disconnect_reason() = notification_in->params().reason;
-        vs_tlv->disconnect_source() = notification_in->params().source;
-        vs_tlv->disconnect_type()   = notification_in->params().type;
 
         send_cmdu_to_controller(cmdu_tx);
 
@@ -2115,19 +2119,23 @@ bool slave_thread::handle_cmdu_ap_manager_message(Socket *sd,
         client_association_event_tlv->association_event() =
             wfa_map::tlvClientAssociationEvent::CLIENT_HAS_JOINED_THE_BSS;
 
-        // Add vendor specific tlv
-        auto vs_tlv =
-            message_com::add_vs_tlv<beerocks_message::tlvVsClientAssociationEvent>(cmdu_tx);
+        if (config.no_vendor_specific) {
+            LOG(DEBUG) << "non-Intel, not adding ClientAssociationEvent VS TLV";
+        } else {
+            // Add vendor specific tlv
+            auto vs_tlv =
+                message_com::add_vs_tlv<beerocks_message::tlvVsClientAssociationEvent>(cmdu_tx);
 
-        if (!vs_tlv) {
-            LOG(ERROR) << "add_vs_tlv tlvVsClientAssociationEvent failed";
-            return false;
+            if (!vs_tlv) {
+                LOG(ERROR) << "add_vs_tlv tlvVsClientAssociationEvent failed";
+                return false;
+            }
+
+            vs_tlv->mac()          = notification_in->params().mac;
+            vs_tlv->bssid()        = notification_in->params().bssid;
+            vs_tlv->vap_id()       = notification_in->params().vap_id;
+            vs_tlv->capabilities() = notification_in->params().capabilities;
         }
-
-        vs_tlv->mac()          = notification_in->params().mac;
-        vs_tlv->bssid()        = notification_in->params().bssid;
-        vs_tlv->vap_id()       = notification_in->params().vap_id;
-        vs_tlv->capabilities() = notification_in->params().capabilities;
 
         send_cmdu_to_controller(cmdu_tx);
 
@@ -2248,8 +2256,7 @@ bool slave_thread::handle_cmdu_ap_manager_message(Socket *sd,
             return false;
         }
 
-        channel_preference_tlv->radio_uid() =
-            network_utils::mac_from_string(config.radio_identifier);
+        channel_preference_tlv->radio_uid() = hostap_params.iface_mac;
 
         for (auto preference : preferences) {
             // Create operating class object
@@ -2287,7 +2294,7 @@ bool slave_thread::handle_cmdu_ap_manager_message(Socket *sd,
             }
         }
 
-        LOG(DEBUG) << "sending channel preference report for ruid=" << config.radio_identifier;
+        LOG(DEBUG) << "sending channel preference report for ruid=" << hostap_params.iface_mac;
 
         send_cmdu_to_controller(cmdu_tx);
 
@@ -3226,89 +3233,96 @@ bool slave_thread::slave_fsm(bool &call_slave_select)
             return false;
         }
 
-        auto notification =
-            message_com::add_vs_tlv<beerocks_message::cACTION_CONTROL_SLAVE_JOINED_NOTIFICATION>(
-                cmdu_tx);
-
-        if (!notification) {
-            LOG(ERROR) << "Failed building cACTION_CONTROL_SLAVE_JOINED_NOTIFICATION!";
-            return false;
-        }
-
-        notification->is_slave_reconf() = is_backhual_reconf;
-        is_backhual_reconf              = false;
-
-        // Version
-        string_utils::copy_string(notification->slave_version(message::VERSION_LENGTH),
-                                  BEEROCKS_VERSION, message::VERSION_LENGTH);
-
-        // Platform Configuration
-        notification->low_pass_filter_on()   = config.backhaul_wireless_iface_filter_low;
-        notification->enable_repeater_mode() = config.enable_repeater_mode;
-        notification->radio_identifier() = network_utils::mac_from_string(config.radio_identifier);
-
-        // Backhaul Params
-        notification->backhaul_params().gw_ipv4 =
-            network_utils::ipv4_from_string(backhaul_params.gw_ipv4);
-        notification->backhaul_params().gw_bridge_mac =
-            network_utils::mac_from_string(backhaul_params.gw_bridge_mac);
-        notification->backhaul_params().is_backhaul_manager = is_backhaul_manager;
-        notification->backhaul_params().backhaul_iface_type = backhaul_params.backhaul_iface_type;
-        notification->backhaul_params().backhaul_mac =
-            network_utils::mac_from_string(backhaul_params.backhaul_mac);
-        notification->backhaul_params().backhaul_channel = backhaul_params.backhaul_channel;
-        notification->backhaul_params().backhaul_bssid =
-            network_utils::mac_from_string(backhaul_params.backhaul_bssid);
-        notification->backhaul_params().backhaul_is_wireless = backhaul_params.backhaul_is_wireless;
-
-        if (!config.bridge_iface.empty()) {
-            notification->backhaul_params().bridge_mac =
-                network_utils::mac_from_string(backhaul_params.bridge_mac);
-            notification->backhaul_params().bridge_ipv4 =
-                network_utils::ipv4_from_string(backhaul_params.bridge_ipv4);
-            notification->backhaul_params().backhaul_ipv4 =
-                network_utils::ipv4_from_string(backhaul_params.bridge_ipv4);
+        if (config.no_vendor_specific) {
+            LOG(INFO) << "Configured as non-Intel, not sending SLAVE_JOINED_NOTIFICATION";
         } else {
-            notification->backhaul_params().backhaul_ipv4 =
-                network_utils::ipv4_from_string(backhaul_params.backhaul_ipv4);
-        }
+            auto notification = message_com::add_vs_tlv<
+                beerocks_message::cACTION_CONTROL_SLAVE_JOINED_NOTIFICATION>(cmdu_tx);
 
-        std::copy_n(backhaul_params.backhaul_scan_measurement_list,
-                    beerocks::message::BACKHAUL_SCAN_MEASUREMENT_MAX_LENGTH,
-                    notification->backhaul_params().backhaul_scan_measurement_list);
-
-        for (unsigned int i = 0; i < message::BACKHAUL_SCAN_MEASUREMENT_MAX_LENGTH; i++) {
-            if (notification->backhaul_params().backhaul_scan_measurement_list[i].channel > 0) {
-                LOG(DEBUG)
-                    << "mac = "
-                    << network_utils::mac_to_string(notification->backhaul_params()
-                                                        .backhaul_scan_measurement_list[i]
-                                                        .mac.oct)
-                    << " channel = "
-                    << int(notification->backhaul_params()
-                               .backhaul_scan_measurement_list[i]
-                               .channel)
-                    << " rssi = "
-                    << int(notification->backhaul_params().backhaul_scan_measurement_list[i].rssi);
+            if (!notification) {
+                LOG(ERROR) << "Failed building cACTION_CONTROL_SLAVE_JOINED_NOTIFICATION!";
+                return false;
             }
+
+            notification->is_slave_reconf() = is_backhual_reconf;
+            is_backhual_reconf              = false;
+
+            // Version
+            string_utils::copy_string(notification->slave_version(message::VERSION_LENGTH),
+                                      BEEROCKS_VERSION, message::VERSION_LENGTH);
+
+            // Platform Configuration
+            notification->low_pass_filter_on()   = config.backhaul_wireless_iface_filter_low;
+            notification->enable_repeater_mode() = config.enable_repeater_mode;
+            notification->radio_identifier() =
+                network_utils::mac_from_string(config.radio_identifier);
+
+            // Backhaul Params
+            notification->backhaul_params().gw_ipv4 =
+                network_utils::ipv4_from_string(backhaul_params.gw_ipv4);
+            notification->backhaul_params().gw_bridge_mac =
+                network_utils::mac_from_string(backhaul_params.gw_bridge_mac);
+            notification->backhaul_params().is_backhaul_manager = is_backhaul_manager;
+            notification->backhaul_params().backhaul_iface_type =
+                backhaul_params.backhaul_iface_type;
+            notification->backhaul_params().backhaul_mac =
+                network_utils::mac_from_string(backhaul_params.backhaul_mac);
+            notification->backhaul_params().backhaul_channel = backhaul_params.backhaul_channel;
+            notification->backhaul_params().backhaul_bssid =
+                network_utils::mac_from_string(backhaul_params.backhaul_bssid);
+            notification->backhaul_params().backhaul_is_wireless =
+                backhaul_params.backhaul_is_wireless;
+
+            if (!config.bridge_iface.empty()) {
+                notification->backhaul_params().bridge_mac =
+                    network_utils::mac_from_string(backhaul_params.bridge_mac);
+                notification->backhaul_params().bridge_ipv4 =
+                    network_utils::ipv4_from_string(backhaul_params.bridge_ipv4);
+                notification->backhaul_params().backhaul_ipv4 =
+                    network_utils::ipv4_from_string(backhaul_params.bridge_ipv4);
+            } else {
+                notification->backhaul_params().backhaul_ipv4 =
+                    network_utils::ipv4_from_string(backhaul_params.backhaul_ipv4);
+            }
+
+            std::copy_n(backhaul_params.backhaul_scan_measurement_list,
+                        beerocks::message::BACKHAUL_SCAN_MEASUREMENT_MAX_LENGTH,
+                        notification->backhaul_params().backhaul_scan_measurement_list);
+
+            for (unsigned int i = 0; i < message::BACKHAUL_SCAN_MEASUREMENT_MAX_LENGTH; i++) {
+                if (notification->backhaul_params().backhaul_scan_measurement_list[i].channel > 0) {
+                    LOG(DEBUG) << "mac = "
+                               << network_utils::mac_to_string(
+                                      notification->backhaul_params()
+                                          .backhaul_scan_measurement_list[i]
+                                          .mac.oct)
+                               << " channel = "
+                               << int(notification->backhaul_params()
+                                          .backhaul_scan_measurement_list[i]
+                                          .channel)
+                               << " rssi = "
+                               << int(notification->backhaul_params()
+                                          .backhaul_scan_measurement_list[i]
+                                          .rssi);
+                }
+            }
+
+            //Platform Settings
+            notification->platform_settings() = platform_settings;
+
+            //Wlan Settings
+            notification->wlan_settings() = wlan_settings;
+            // Hostap Params
+            notification->hostap()          = hostap_params;
+            notification->hostap().ant_gain = config.hostap_ant_gain;
+
+            // Channel Selection Params
+            notification->cs_params() = hostap_cs_params;
         }
-
-        //Platform Settings
-        notification->platform_settings() = platform_settings;
-
-        //Wlan Settings
-        notification->wlan_settings() = wlan_settings;
-        // Hostap Params
-        notification->hostap()          = hostap_params;
-        notification->hostap().ant_gain = config.hostap_ant_gain;
-
-        // Channel Selection Params
-        notification->cs_params() = hostap_cs_params;
 
         send_cmdu_to_controller(cmdu_tx);
-        LOG(DEBUG) << "send SLAVE_JOINED_NOTIFICATION Size=" << int(cmdu_tx.getMessageLength());
+        LOG(DEBUG) << "sending WSC M1 Size=" << int(cmdu_tx.getMessageLength());
 
-        LOG(DEBUG) << "sending ACTION_CONTROL_SLAVE_JOINED_NOTIFICATION";
         LOG(TRACE) << "goto STATE_WAIT_FOR_JOINED_RESPONSE";
         slave_state_timer = std::chrono::steady_clock::now() +
                             std::chrono::seconds(WAIT_FOR_JOINED_RESPONSE_TIMEOUT_SEC);
@@ -3873,8 +3887,8 @@ bool slave_thread::handle_autoconfiguration_wsc(Socket *sd, ieee1905_1::CmduMess
         return false;
     }
     // Check if the message is for this radio agent by comparing the ruid
-    if (network_utils::mac_from_string(config.radio_identifier) != ruid->radio_uid()) {
-        LOG(DEBUG) << "not to me - ruid " << config.radio_identifier
+    if (hostap_params.iface_mac != ruid->radio_uid()) {
+        LOG(DEBUG) << "not to me - Radio ID " << hostap_params.iface_mac
                    << " != " << network_utils::mac_to_string(ruid->radio_uid());
         return true;
     }
@@ -4322,9 +4336,8 @@ bool slave_thread::handle_channel_selection_request(Socket *sd, ieee1905_1::Cmdu
     for (auto channel_preference_tlv : cmdu_rx.getClassList<wfa_map::tlvChannelPreference>()) {
 
         const auto &ruid = channel_preference_tlv->radio_uid();
-        if (network_utils::mac_to_string(ruid) != config.radio_identifier) {
-            LOG(DEBUG) << "ruid_rx=" << network_utils::mac_to_string(ruid)
-                       << ", son_slave_ruid=" << config.radio_identifier;
+        if (ruid != hostap_params.iface_mac) {
+            LOG(DEBUG) << "ruid_rx=" << ruid << ", son_slave_ruid=" << hostap_params.iface_mac;
             continue;
         }
 
@@ -4405,8 +4418,7 @@ bool slave_thread::handle_channel_selection_request(Socket *sd, ieee1905_1::Cmdu
         return false;
     }
 
-    channel_selection_response_tlv->radio_uid() =
-        network_utils::mac_from_string(config.radio_identifier);
+    channel_selection_response_tlv->radio_uid() = hostap_params.iface_mac;
     channel_selection_response_tlv->response_code() =
         wfa_map::tlvChannelSelectionResponse::eResponseCode::ACCEPT;
 
@@ -4427,8 +4439,7 @@ bool slave_thread::handle_channel_selection_request(Socket *sd, ieee1905_1::Cmdu
         return false;
     }
 
-    operating_channel_report_tlv->radio_uid() =
-        network_utils::mac_from_string(config.radio_identifier);
+    operating_channel_report_tlv->radio_uid() = hostap_params.iface_mac;
 
     auto op_classes_list = operating_channel_report_tlv->alloc_operating_classes_list();
     if (!op_classes_list) {
@@ -4465,7 +4476,7 @@ bool slave_thread::add_radio_basic_capabilities()
         LOG(ERROR) << "Error creating TLV_AP_RADIO_BASIC_CAPABILITIES";
         return false;
     }
-    radio_basic_caps->radio_uid() = network_utils::mac_from_string(config.radio_identifier);
+    radio_basic_caps->radio_uid() = hostap_params.iface_mac;
     //TODO get maximum supported VAPs from DWPAL
     radio_basic_caps->maximum_number_of_bsss_supported() = 2;
 

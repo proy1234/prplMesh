@@ -14,6 +14,7 @@
 
 #include "net_struct.h"
 #include <cstdint>
+#include <easylogging++.h>
 #include <string>
 #include <vector>
 
@@ -124,5 +125,10 @@ public:
 };
 } // namespace net
 } // namespace beerocks
+
+inline el::base::MessageBuilder &operator<<(el::base::MessageBuilder &log, const sMacAddr &addr)
+{
+    return log << beerocks::net::network_utils::mac_to_string(addr);
+}
 
 #endif //_NETWORK_UTILS_H_
