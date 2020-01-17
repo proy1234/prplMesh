@@ -4,6 +4,7 @@ import unittest
 import re
 from enum import Enum
 import sys
+import UCCSocket
 
 class DeviceType(Enum):
     gateway = 1
@@ -24,16 +25,16 @@ class LogType(Enum):
 class BaseTest(unittest.TestCase):
 
     def send_controller_command(self, command):
-        testSystem.send_command(Device.gateway, command)
+        testSystem.send_command(DeviceType.gateway, command)
 
     def send_agent_command(self, command):
-        testSystem.send_command(Device.agent, command)
+        testSystem.send_command(DeviceType.agent, command)
 
     def send_repeater1_command(self, command):
-        testSystem.send_command(Device.repeater1, command)
+        testSystem.send_command(DeviceType.repeater1, command)
 
     def send_repeater2_command(self, command):
-        testSystem.send_command(Device.repeater2, command)
+        testSystem.send_command(DeviceType.repeater2, command)
 
     def find_in_logs(self, device:DeviceType, log:LogType, text:str, ignore_case:bool = True, regexp:bool = False):
         logs = testSystem.get_log(device, log)
