@@ -1067,8 +1067,36 @@ int bml_internal::process_cmdu_header(std::shared_ptr<beerocks_header> beerocks_
             }
         } break;
         case beerocks_message::ACTION_BML_CHANNEL_SCAN_GET_CONTINUOUS_ENABLE_RESPONSE: {
+            auto response = beerocks_header->addClass<
+                beerocks_message::cACTION_BML_CHANNEL_SCAN_SET_CONTINUOUS_PARAMS_RESPONSE>();
+            if (!response) {
+                LOG(ERROR)
+                    << "addClass cACTION_BML_CHANNEL_SCAN_SET_CONTINUOUS_PARAMS_RESPONSE failed";
+                return BML_RET_OP_FAILED;
+            }
+
+            //Signal any waiting threads
+            if (!wake_up(beerocks_message::ACTION_BML_CHANNEL_SCAN_SET_CONTINUOUS_PARAMS_REQUEST,
+                         response->op_error_code())) {
+                LOG(WARNING) << "Received ACTION_BML_CHANNEL_SCAN_SET_CONTINUOUS_PARAMS_REQUEST"
+                             << " response, but no one is waiting...";
+            }
         } break;
         case beerocks_message::ACTION_BML_CHANNEL_SCAN_SET_CONTINUOUS_ENABLE_RESPONSE: {
+            auto response = beerocks_header->addClass<
+                beerocks_message::cACTION_BML_CHANNEL_SCAN_SET_CONTINUOUS_PARAMS_RESPONSE>();
+            if (!response) {
+                LOG(ERROR)
+                    << "addClass cACTION_BML_CHANNEL_SCAN_SET_CONTINUOUS_PARAMS_RESPONSE failed";
+                return BML_RET_OP_FAILED;
+            }
+
+            //Signal any waiting threads
+            if (!wake_up(beerocks_message::ACTION_BML_CHANNEL_SCAN_SET_CONTINUOUS_PARAMS_REQUEST,
+                         response->op_error_code())) {
+                LOG(WARNING) << "Received ACTION_BML_CHANNEL_SCAN_SET_CONTINUOUS_PARAMS_REQUEST"
+                             << " response, but no one is waiting...";
+            }
         } break;
         case beerocks_message::ACTION_BML_CHANNEL_SCAN_GET_CONTINUOUS_PARAMS_RESPONSE: {
         } break;
@@ -1254,9 +1282,8 @@ int bml_internal::bml_get_vap_list_credentials(BML_VAP_INFO *vaps, uint8_t &vaps
     return (iRet);
 }
 
-int bml_internal::set_dcs_continuous_scan_enable(const std::string &mac, int enable)
+int bml_internal::set_dcs_continuous_scan_enable(const sMacAddr &mac, int enable)
 {
-    //CMDU message
     auto request = message_com::create_vs_message<
         beerocks_message::cACTION_BML_CHANNEL_SCAN_SET_CONTINUOUS_ENABLE_REQUEST>(cmdu_tx);
 
@@ -1266,7 +1293,7 @@ int bml_internal::set_dcs_continuous_scan_enable(const std::string &mac, int ena
         return (-BML_RET_OP_FAILED);
     }
 
-    request->radio_mac() = network_utils::mac_from_string(mac);
+    request->radio_mac() = mac;
     request->isEnable()  = enable;
 
     int result = 0;
@@ -1275,7 +1302,7 @@ int bml_internal::set_dcs_continuous_scan_enable(const std::string &mac, int ena
         return (-BML_RET_OP_FAILED);
     }
 
-    if (result > 0) {
+    if (result != int(eChannelScanOpErrCode::CHANNEL_SCAN_OP_SUCCESS)) {
         LOG(ERROR) << "ACTION_BML_CHANNEL_SCAN_SET_CONTINUOUS_ENABLE_REQUEST returned error code:"
                    << result;
         return result;
@@ -1284,9 +1311,16 @@ int bml_internal::set_dcs_continuous_scan_enable(const std::string &mac, int ena
     return BML_RET_OK;
 }
 
-int bml_internal::get_dcs_continuous_scan_enable(const std::string &mac, int *output_enable)
+int bml_internal::get_dcs_continuous_scan_enable(const sMacAddr &mac, int *enable)
 {
-    //CMDU message
+    // If the socket is not valid, attempt to re-establish the connection
+    if (!m_sockMaster) {
+        int iRet = connect_to_master();
+        if (iRet != BML_RET_OK) {
+            return iRet;
+        }
+    }
+
     auto request = message_com::create_vs_message<
         beerocks_message::cACTION_BML_CHANNEL_SCAN_GET_CONTINUOUS_ENABLE_REQUEST>(cmdu_tx);
 
@@ -1296,9 +1330,9 @@ int bml_internal::get_dcs_continuous_scan_enable(const std::string &mac, int *ou
         return (-BML_RET_OP_FAILED);
     }
 
-    request->radio_mac() = network_utils::mac_from_string(mac);
+    request->radio_mac() = mac;
 
-    return send_bml_cmdu(*output_enable, request->get_action_op());
+    return send_bml_cmdu(*enable, request->get_action_op());
 }
 
 int bml_internal::set_dcs_continuous_scan_params(const std::string &mac, int dwell_time,
