@@ -80,10 +80,10 @@ void monitor_thread::stop_monitor_thread()
     } else {
 
         LOG(ERROR) << "disconnecting monitor_thread sockets";
-        if (mon_hal_ext_events || mon_hal_nl_events || slave_socket)
-            LOG(DEBUG) << "stop_monitor_thread()";
-
+        LOG_IF(mon_hal_ext_events || mon_hal_nl_events || slave_socket, DEBUG)
+            << "stop_monitor_thread()";
         if (mon_hal_ext_events) {
+            LOG(DEBUG) << "stopping mon_hal_ext_events!";
             mon_rssi.stop();
             mon_stats.stop();
 #ifdef BEEROCKS_RDKB
@@ -97,19 +97,21 @@ void monitor_thread::stop_monitor_thread()
         }
 
         if (mon_hal_int_events) {
+            LOG(DEBUG) << "stopping mon_hal_int_events!";
             remove_socket(mon_hal_int_events);
             delete mon_hal_int_events;
             mon_hal_int_events = nullptr;
         }
 
         if (mon_hal_nl_events) {
+            LOG(DEBUG) << "stopping mon_hal_nl_events!";
             remove_socket(mon_hal_nl_events);
             delete mon_hal_nl_events;
             mon_hal_nl_events = nullptr;
-            LOG(ERROR) << "nl socket remove";
         }
 
         if (slave_socket) {
+            LOG(DEBUG) << "stopping slave_socket!";
             remove_socket(slave_socket);
             slave_socket->closeSocket();
             delete slave_socket;
@@ -145,7 +147,7 @@ bool monitor_thread::socket_disconnected(Socket *sd)
         return false;
     } else if (mon_hal_nl_events && (sd == mon_hal_nl_events)) {
         LOG(ERROR) << "mon_hal_nl_events socket disconnected!";
-        thread_last_error_code = MONITOR_THREAD_ERROR_HAL_DISCONNECTED;
+        thread_last_error_code = MONITOR_THREAD_ERROR_NL_EVENTS_SOCKET_DISCONNECTED;
         stop_monitor_thread();
         return false;
      }
@@ -279,12 +281,10 @@ void monitor_thread::after_select(bool timeout)
             if (nl_events_fd > 0) {
                 mon_hal_nl_events = new Socket(nl_events_fd);
                 add_socket(mon_hal_nl_events);
-                LOG(DEBUG) << "nl socket created ";
-            } else if (nl_events_fd == 0) {
-                mon_hal_nl_events = nullptr;
-                LOG(DEBUG) << "Couldn't get NL fd ";
+                LOG(DEBUG) << "nl socket created for FD #" << nl_events_fd;
             } else {
                 LOG(ERROR) << "Couldn't get NL socket ";
+                mon_hal_nl_events      = nullptr;
                 thread_last_error_code = MONITOR_THREAD_ERROR_NL_ATTACH_FAIL;
                 return;
             }
