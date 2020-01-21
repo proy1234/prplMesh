@@ -1661,3 +1661,49 @@ int cli_bml::steering_client_measure(uint32_t steeringGroupIndex, const std::str
     return 0;
 }
 #endif //BEEROCKS_RDKB
+
+int cli_bml::set_dcs_continuous_scan_enable(const std::string &radio_mac, int8_t enable)
+{
+    std::cout << "set_dcs_continuous_scan_enable" << std::endl;
+
+    return 0;
+}
+
+int cli_bml::get_dcs_continuous_scan_enable(const std::string &radio_mac)
+{
+    std::cout << "get_dcs_continuous_scan_enable" << std::endl;
+
+    return 0;
+}
+
+int cli_bml::set_dcs_continuous_scan_params(const std::string &radio_mac, int dwell_time,
+                                            int interval_time, const std::string &channel_pool,
+                                            int channel_pool_size)
+{
+    std::cout << "set_dcs_continuous_scan_params" << std::endl;
+
+    return 0;
+}
+
+int cli_bml::get_dcs_continuous_scan_params(const std::string &radio_mac)
+{
+    std::cout << "get_dcs_continuous_scan_params" << std::endl;
+
+    return 0;
+}
+
+int cli_bml::start_dcs_single_scan(const std::string &radio_mac, int dwell_time,
+                                   int channel_pool_size, const std::string &channel_pool)
+{
+    std::cout << "start_dcs_single_scan" << std::endl;
+
+    return 0;
+}
+
+int cli_bml::get_dcs_scan_results(const std::string &radio_mac, unsigned int max_results_size,
+                                  int8_t is_single_scan)
+{
+    std::cout << "get_dcs_scan_results" << std::endl;
+
+    return 0;
+}
