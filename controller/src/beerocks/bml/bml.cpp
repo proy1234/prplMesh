@@ -590,9 +590,10 @@ int bml_set_dcs_continuous_scan_params(BML_CTX ctx, const char *radio_mac, int d
         return (-BML_RET_INVALID_ARGS);
     }
 
-    bml_internal *pBML = (bml_internal *)ctx;
-    return pBML->set_dcs_continuous_scan_params(radio_mac, dwell_time, interval_time, channel_pool,
-                                                channel_pool_size);
+    auto pBML = static_cast<bml_internal *>(ctx);
+    return pBML->set_dcs_continuous_scan_params(
+        network_utils::mac_from_string(std::string(radio_mac)), dwell_time, interval_time,
+        channel_pool, channel_pool_size);
 }
 
 int bml_get_dcs_continuous_scan_params(BML_CTX ctx, const char *radio_mac, int *output_dwell_time,
@@ -604,9 +605,10 @@ int bml_get_dcs_continuous_scan_params(BML_CTX ctx, const char *radio_mac, int *
         return (-BML_RET_INVALID_ARGS);
     }
 
-    bml_internal *pBML = (bml_internal *)ctx;
-    return pBML->get_dcs_continuous_scan_params(radio_mac, output_dwell_time, output_interval_time,
-                                                output_channel_pool, output_channel_pool_size);
+    auto pBML = static_cast<bml_internal *>(ctx);
+    return pBML->get_dcs_continuous_scan_params(
+        network_utils::mac_from_string(std::string(radio_mac)), output_dwell_time,
+        output_interval_time, output_channel_pool, output_channel_pool_size);
 }
 
 int bml_get_dcs_scan_results(BML_CTX ctx, const char *radio_mac,
