@@ -150,7 +150,7 @@ bool monitor_thread::socket_disconnected(Socket *sd)
         thread_last_error_code = MONITOR_THREAD_ERROR_NL_EVENTS_SOCKET_DISCONNECTED;
         stop_monitor_thread();
         return false;
-     }
+    }
 
     return true;
 }
@@ -382,7 +382,6 @@ void monitor_thread::after_select(bool timeout)
                     stop_monitor_thread();
                     return;
                 }
-                LOG(DEBUG) << "proccess nl events finished ";
                 clear_ready(mon_hal_nl_events);
             }
         } else {
@@ -1168,26 +1167,26 @@ bool monitor_thread::handle_cmdu(Socket *sd, ieee1905_1::CmduMessageRx &cmdu_rx)
         auto channel_pool_vector =
             std::vector<unsigned int>(channel_pool, channel_pool + channel_pool_size);
         std::string channels;
-        for (int8_t index = 0; index < channel_pool_size; index++) {
-            if (index != 0) {
-                channels += ",";
-            }
-            channels += std::to_string(int(channel_pool[index]));
+
+        //loop for priting the channal pool
+        for (int index = 0; index < int(channel_pool_size); index++) {
+            channels += ((index != 0) ? "," : "") + std::to_string(channel_pool[index]);
         }
 
         //debug print incoming information:
         LOG(DEBUG) << std::endl
                    << "scan_params:" << std::endl
-                   << "radio_mac=" << network_utils::mac_to_string(radio_mac) << std::endl
+                   << "radio_mac=" << radio_mac << std::endl
                    << "dwell_time_ms=" << dwell_time_ms << std::endl
                    << "channel_pool_size=" << int(channel_pool_size) << std::endl
                    << "channel_pool=" << channels;
 
         auto response_out = message_com::create_vs_message<
-            beerocks_message::cACTION_MONITOR_CHANNEL_SCAN_TRIGGER_SCAN_RESPONSE>(cmdu_tx,
-                                                                         beerocks_header->id());
+            beerocks_message::cACTION_MONITOR_CHANNEL_SCAN_TRIGGER_SCAN_RESPONSE>(
+            cmdu_tx, beerocks_header->id());
         if (!response_out) {
-            LOG(ERROR) << "Failed building cACTION_MONITOR_CHANNEL_SCAN_TRIGGER_SCAN_RESPONSE message!";
+            LOG(ERROR)
+                << "Failed building cACTION_MONITOR_CHANNEL_SCAN_TRIGGER_SCAN_RESPONSE message!";
             return false;
         }
 
