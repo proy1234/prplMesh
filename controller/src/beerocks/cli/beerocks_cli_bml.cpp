@@ -1123,6 +1123,67 @@ int cli_bml::bml_rdkb_steering_client_measure_caller(int numOfArgs)
 }
 #endif //BEEROCKS_RDKB
 
+int cli_bml::set_dcs_continuous_scan_enable_caller(int numOfArgs)
+{
+    if (numOfArgs == 2) {
+        return set_dcs_continuous_scan_enable(args.stringArgs[0], args.intArgs[1]);
+    }
+    return -1;
+}
+
+int cli_bml::get_dcs_continuous_scan_enable_caller(int numOfArgs)
+{
+    if (numOfArgs == 1) {
+        return get_dcs_continuous_scan_enable(args.stringArgs[0]);
+    }
+    return -1;
+}
+
+int cli_bml::set_dcs_continuous_scan_params_caller(int numOfArgs)
+{
+    if (numOfArgs == 2) {
+        return set_dcs_continuous_scan_params(args.stringArgs[0], args.intArgs[1]);
+    } else if (numOfArgs == 3) {
+        return set_dcs_continuous_scan_params(args.stringArgs[0], args.intArgs[1], args.intArgs[2]);
+    } else if (numOfArgs == 4) {
+        std::cout << "Invalid number of arguments, set of channel_pool must also provide "
+                     "channel_pool_size"
+                  << std::endl;
+        return -1;
+    } else if (numOfArgs == 5) {
+        return set_dcs_continuous_scan_params(args.stringArgs[0], args.intArgs[1], args.intArgs[2],
+                                              args.stringArgs[3], args.intArgs[4]);
+    }
+    return -1;
+}
+
+int cli_bml::get_dcs_continuous_scan_params_caller(int numOfArgs)
+{
+    if (numOfArgs == 1) {
+        return get_dcs_continuous_scan_params(args.stringArgs[0]);
+    }
+    return -1;
+}
+
+int cli_bml::start_dcs_single_scan_caller(int numOfArgs)
+{
+    if (numOfArgs == 4) {
+        return start_dcs_single_scan(args.stringArgs[0], args.intArgs[1], args.intArgs[2],
+                                     args.stringArgs[3]);
+    }
+    return -1;
+}
+
+int cli_bml::get_dcs_scan_results_caller(int numOfArgs)
+{
+    if (numOfArgs == 2) {
+        return get_dcs_scan_results(args.stringArgs[0], args.intArgs[1]);
+    } else if (numOfArgs == 3) {
+        return get_dcs_scan_results(args.stringArgs[0], args.intArgs[1], args.intArgs[2]);
+    }
+    return -1;
+}
+
 //
 // Functions
 //
