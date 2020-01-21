@@ -12,7 +12,7 @@ ALL_TESTS="topology initial_ap_config ap_config_renew ap_config_bss_tear_down ch
            higher_layer_data_payload_trigger higher_layer_data_payload"
 
 scriptdir="$(cd "${0%/*}"; pwd)"
-rootdir="${scriptdir%/*/*/*}"
+rootdir="${scriptdir%/*}"
 . ${rootdir}/tools/docker/functions.sh
 
 redirect="> /dev/null 2>&1"
@@ -66,7 +66,7 @@ send_CAPI_command() {
     ip="$(container_ip "$1")"
     port="$(container_CAPI_port "$1")"
     dbg "Sending to $ip:$port. Command: $2"
-    capi_command_result=$("${rootdir}/tools/docker/tests/send_CAPI_command.py" "$ip" "$port" "$2" | tr  -d '\r')
+    capi_command_result=$("${rootdir}/tests/send_CAPI_command.py" "$ip" "$port" "$2" | tr  -d '\r')
     dbg "Result:\n$capi_command_result"
     capi_command_reply=$(echo -e "$capi_command_result" | awk 'NR==2')
 }
@@ -87,7 +87,7 @@ test_initial_ap_config() {
 #         'grep -i -q "Controller configuration (WSC M2 Encrypted Settings)" /tmp/$USER/beerocks/logs/beerocks_agent_wlan0.log'
 #     check docker exec repeater1 sh -c \
 #         'grep -i -q "Controller configuration (WSC M2 Encrypted Settings)" /tmp/$USER/beerocks/logs/beerocks_agent_wlan2.log'
-    python3 ${rootdir}/tools/docker/tests/run_tests.py
+    python3 ${rootdir}/tests/run_tests.py
     return $?
 }
 

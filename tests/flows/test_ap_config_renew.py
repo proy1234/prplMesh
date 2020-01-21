@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 from . import BaseTest, LogType, DeviceType
 import time
 """

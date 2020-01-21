@@ -4,7 +4,19 @@ import unittest
 import re
 from enum import Enum
 import sys
-import UCCSocket
+
+if __name__ == '__main__':
+    print("Error: running this as main!")
+    sys.exit(1)
+
+testSystem = None
+testFiles = [f[0:-3] for f in os.listdir(os.path.dirname(os.path.abspath(__file__))) if 'test' in f and f.endswith('.py')]
+
+__all__ = ['DeviceType', 'LogType', 'BaseTest', 'BaseConfig', 'TestSystem', 'load_tests'] + testFiles
+
+#for testFile in testFiles:
+    #__import__(testFile)
+
 
 class DeviceType(Enum):
     gateway = 1
@@ -97,17 +109,24 @@ class TestSystem:
                 return sock.get_reply()
             return ""
 
-testSystem = None
-testFiles = [f[0:-3] for f in os.listdir(os.path.dirname(os.path.abspath(__file__))) if 'test' in f and f.endswith('.py')]
-
 def load_tests(loader, standard_tests, pattern):
-    
+    print("load_tests called! testFiles={}".format(testFiles))
     suite = unittest.TestSuite()
     for f in testFiles:
-        testModule = getattr(sys.modules[__name__], f)
+        print(f)
+        try:
+            testModule = __import__(f)
+        except Exception as e:
+            print(e)
+            print("***")
+            print(sys.modules[__name__], dir(sys.modules[__name__]))
+            print("***")
+
+        print(testModule)
         tests = loader.loadTestsFromModule(testModule)
+        print("Calling loader.loadTestsFromModule({testModule})".format(testModule=testModule))
+        print("loader.errors=", loader.errors)
         suite.addTests(tests)
     return suite
 
-__all__ = ['DeviceType', 'LogType', 'BaseTest', 'BaseConfig', 'TestSystem', 'testSystem', 'load_tests'] + testFiles
 

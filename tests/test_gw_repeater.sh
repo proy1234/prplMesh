@@ -7,7 +7,8 @@
 ###############################################################
 
 scriptdir="$(cd "${0%/*}"; pwd)"
-rootdir="${scriptdir%/*/*/*}"
+rootdir="${scriptdir%/*}"
+dockerdir="${rootdir}/tools/docker"
 
 . ${rootdir}/tools/docker/functions.sh
 
@@ -64,7 +65,7 @@ main() {
 
     [ "$START_GATEWAY" = "true" ] && {
         status "Start GW (Controller + local Agent)"
-        ${scriptdir}/../run.sh ${VERBOSE_OPT} ${FORCE_OPT} start-controller-agent -d -n ${GW_NAME} -m 00:11:22:33 "$@"
+        ${dockerdir}/run.sh ${VERBOSE_OPT} ${FORCE_OPT} start-controller-agent -d -n ${GW_NAME} -m 00:11:22:33 "$@"
     }
 
     [ "$START_GATEWAY" = "true" -a "$START_REPEATER" = "true" ] && {
@@ -76,7 +77,7 @@ main() {
         index=0
         for repeater in $REPEATER_NAMES; do
             status "Start Repeater (Remote Agent): $repeater"
-            ${scriptdir}/../run.sh ${VERBOSE_OPT} ${FORCE_OPT} start-agent -d -n ${repeater} -m aa:bb:cc:$index$index "$@"
+            ${dockerdir}/run.sh ${VERBOSE_OPT} ${FORCE_OPT} start-agent -d -n ${repeater} -m aa:bb:cc:$index$index "$@"
             index=$((index+1))
         done
     }
@@ -86,14 +87,14 @@ main() {
 
     error=0
     [ "$START_GATEWAY" = "true" ] && report "GW operational" \
-        ${scriptdir}/../test.sh ${VERBOSE_OPT} -n ${GW_NAME}
+        ${dockerdir}/test.sh ${VERBOSE_OPT} -n ${GW_NAME}
 
 
     [ "$START_REPEATER" = "true" ] && {
         for repeater in $REPEATER_NAMES
         do
             report "Repeater $repeater operational" \
-            ${scriptdir}/../test.sh ${VERBOSE_OPT} -n ${repeater}
+            ${dockerdir}/test.sh ${VERBOSE_OPT} -n ${repeater}
         done
     }
 

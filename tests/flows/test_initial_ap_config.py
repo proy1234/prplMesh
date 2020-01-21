@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 from . import BaseTest, LogType, DeviceType
 
 class test_initial_ap_config(BaseTest):
