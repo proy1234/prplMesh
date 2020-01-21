@@ -507,6 +507,46 @@ void cli_bml::setFunctionsMapAndArray()
                        static_cast<pFunction>(&cli_bml::bml_rdkb_steering_client_measure_caller), 3,
                        3, INT_ARG, STRING_ARG, STRING_ARG);
 #endif
+    insertCommandToMap(
+        "bml_set_dcs_continuous_scan_enable", "<mac> <1 or 0>",
+        "Enable/Disable (1 or 0) the Dynamic-Channel-Selection for the given AP mac.",
+        static_cast<pFunction>(&cli_bml::set_dcs_continuous_scan_enable_caller), 2, 2, STRING_ARG,
+        INT_ARG);
+    insertCommandToMap("bml_get_dcs_continuous_scan_enable", "<mac>",
+                       "Get Dynamic-Channel-Selection enable configuration for the given AP mac.",
+                       static_cast<pFunction>(&cli_bml::get_dcs_continuous_scan_enable_caller), 1,
+                       1, STRING_ARG);
+    insertCommandToMap(
+        "bml_set_dcs_continuous_scan_params",
+        "<mac> <dwell_time_msec> [<interval_time>] [<channel_pool>] [<channel_pool_size>]",
+        "Set the continuous scan params for the given AP mac: dwell_time - dwell time in "
+        "miliseconds, interval_time - interval time in seconds,"
+        " channel_pool - channels seperated by commas (set of channel_pool must also provide "
+        "channel_pool_size),"
+        " channel_pool_size - size of the channel_pool.",
+        static_cast<pFunction>(&cli_bml::set_dcs_continuous_scan_params_caller), 2, 5, STRING_ARG,
+        INT_ARG, INT_ARG, STRING_ARG, INT_ARG);
+    insertCommandToMap("bml_get_dcs_continuous_scan_params", "<mac>",
+                       "Get Dynamic-Channel-Selection params for the given AP mac: dwell_time - "
+                       "dwell time in miliseconds, interval_time - interval time in seconds,"
+                       " channel_pool - channels seperated by commas, channel_pool_size - size of "
+                       "the channel_pool.",
+                       static_cast<pFunction>(&cli_bml::get_dcs_continuous_scan_params_caller), 1,
+                       1, STRING_ARG);
+    insertCommandToMap(
+        "bml_start_dcs_single_scan", "<mac> <dwell_time_msec> <channel_pool_size> <channel_pool>",
+        "Start a single scan, for the given AP mac, with the following scan params:"
+        " dwell_time - dwell time in miliseconds, channel_pool_size - size of the channel_pool,"
+        " channel_pool - channels seperated by commas.",
+        static_cast<pFunction>(&cli_bml::start_dcs_single_scan_caller), 4, 4, STRING_ARG, INT_ARG,
+        INT_ARG, STRING_ARG);
+    insertCommandToMap(
+        "bml_get_dcs_scan_results", "<mac> <max-results-size> [<is-single-scan>]",
+        "Get Dynamic-Channel-Selection scan results for the given AP mac:"
+        " max-results-size - maximal size of the returned results,"
+        " is-single-scan - 0 for continuous-scan results (default), 1 for single scan.",
+        static_cast<pFunction>(&cli_bml::get_dcs_scan_results_caller), 2, 3, STRING_ARG, INT_ARG,
+        INT_ARG);
     //bool insertCommandToMap(std::string command, std::string help_args, std::string help,  pFunction funcPtr, uint8_t minNumOfArgs, uint8_t maxNumOfArgs,
 }
 
