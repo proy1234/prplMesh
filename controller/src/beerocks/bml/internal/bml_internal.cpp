@@ -1138,6 +1138,21 @@ int bml_internal::process_cmdu_header(std::shared_ptr<beerocks_header> beerocks_
         case beerocks_message::ACTION_BML_CHANNEL_SCAN_GET_RESULTS_RESPONSE: {
         } break;
         case beerocks_message::ACTION_BML_CHANNEL_SCAN_START_SCAN_RESPONSE: {
+            LOG(DEBUG) << "ACTION_BML_DCS_GET_SCAN_RESULTS_RESPONSE received";
+            auto response =
+                beerocks_header
+                    ->addClass<beerocks_message::cACTION_BML_CHANNEL_SCAN_START_SCAN_RESPONSE>();
+            if (!response) {
+                LOG(ERROR) << "addClass cACTION_BML_CHANNEL_SCAN_START_SCAN_RESPONSE failed";
+                return BML_RET_OP_FAILED;
+            }
+
+            //Signal any waiting threads
+            if (!wake_up(beerocks_message::ACTION_BML_CHANNEL_SCAN_START_SCAN_REQUEST,
+                         response->op_error_code())) {
+                LOG(WARNING) << "Received ACTION_BML_CHANNEL_SCAN_START_SCAN_REQUEST"
+                             << " response, but no one is waiting...";
+            }
         } break;
         default: {
             LOG(WARNING) << "unhandled header platform action type 0x" << std::hex
@@ -1587,11 +1602,11 @@ int bml_internal::get_dcs_scan_results(const std::string &mac, BML_NEIGHBOR_AP *
     return BML_RET_OK;
 }
 
-int bml_internal::start_dcs_single_scan(const std::string &mac, int dwell_time_ms,
+int bml_internal::start_dcs_single_scan(const sMacAddr &mac, int dwell_time_ms,
                                         int channel_pool_size, unsigned int *channel_pool)
 {
     LOG(DEBUG) << "start_single_channel_scan";
-    //CMDU message
+
     auto request = message_com::create_vs_message<
         beerocks_message::cACTION_BML_CHANNEL_SCAN_START_SCAN_REQUEST>(cmdu_tx);
 
@@ -1600,11 +1615,11 @@ int bml_internal::start_dcs_single_scan(const std::string &mac, int dwell_time_m
         return (-BML_RET_OP_FAILED);
     }
 
-    request->scan_params().radio_mac         = network_utils::mac_from_string(mac);
+    request->scan_params().radio_mac         = mac;
     request->scan_params().dwell_time_ms     = dwell_time_ms;
     request->scan_params().channel_pool_size = channel_pool_size;
-    if (channel_pool_size > 0 && channel_pool_size <= BML_CHANNEL_SCAN_MAX_CHANNEL_POOL_SIZE &&
-        channel_pool != nullptr) {
+    if (channel_pool && channel_pool_size > 0 &&
+        channel_pool_size <= BML_CHANNEL_SCAN_MAX_CHANNEL_POOL_SIZE) {
         std::copy_n(channel_pool, channel_pool_size, request->scan_params().channel_pool);
     }
 

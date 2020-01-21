@@ -169,7 +169,7 @@ public:
                              uint8_t *output_result_status, bool is_single_scan);
 
     //trigger single channel scan
-    int start_dcs_single_scan(const std::string &mac, int dwell_time_ms, int channel_pool_size,
+    int start_dcs_single_scan(const sMacAddr &mac, int dwell_time_ms, int channel_pool_size,
                               unsigned int *channel_pool);
     /*
  * Public static methods:
