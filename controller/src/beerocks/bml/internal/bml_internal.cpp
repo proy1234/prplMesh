@@ -1136,6 +1136,60 @@ int bml_internal::process_cmdu_header(std::shared_ptr<beerocks_header> beerocks_
             }
         } break;
         case beerocks_message::ACTION_BML_CHANNEL_SCAN_GET_RESULTS_RESPONSE: {
+            LOG(DEBUG) << "ACTION_BML_DCS_GET_SCAN_RESULTS_RESPONSE received";
+            auto response =
+                beerocks_header
+                    ->addClass<beerocks_message::cACTION_BML_CHANNEL_SCAN_GET_RESULTS_RESPONSE>();
+            if (!response) {
+                LOG(ERROR) << "addClass cACTION_BML_CHANNEL_SCAN_GET_RESULTS_RESPONSE failed";
+                return BML_RET_OP_FAILED;
+            }
+
+            //Signal any waiting threads
+            if (m_prmChannelScanResultsGet) {
+
+                if (m_scan_results && m_scan_results_maxsize && m_scan_results_status) {
+
+                    LOG(DEBUG) << "Receiving Response";
+
+                    uint8_t op_error_code  = response->op_error_code();
+                    *m_scan_results_status = response->result_status();
+                    auto scan_results_size = response->results_size();
+                    uint8_t last           = response->last();
+
+                    LOG(DEBUG) << "Opt code: " << int(op_error_code)
+                               << ", status: " << int(*m_scan_results_status)
+                               << ", size: " << int(scan_results_size);
+
+                    if (scan_results_size > 0) {
+                        LOG(DEBUG) << "currently with " << m_scan_results->size() << " results";
+
+                        // Get results from CMDU
+                        auto results = &std::get<1>(response->results(0));
+
+                        // Cap results if no more room is avaliable
+                        scan_results_size =
+                            (m_scan_results->size() + scan_results_size > *m_scan_results_maxsize)
+                                ? *m_scan_results_maxsize - m_scan_results->size()
+                                : scan_results_size;
+
+                        // Insert results
+                        m_scan_results->insert(m_scan_results->end(), results,
+                                               results + scan_results_size);
+                        LOG(DEBUG) << scan_results_size << " results added";
+                    }
+                    LOG(DEBUG) << "last: " << (int)last;
+                    if (last == 1) {
+                        LOG(DEBUG) << "Results done";
+                        m_prmChannelScanResultsGet->set_value(op_error_code);
+                    } else {
+                        LOG(DEBUG) << "Results cont";
+                    }
+                }
+            } else {
+                LOG(WARNING) << "Received ACTION_BML_CHANNEL_SCAN_GET_RESULTS_REQUEST response, "
+                             << "but no one is waiting...";
+            }
         } break;
         case beerocks_message::ACTION_BML_CHANNEL_SCAN_START_SCAN_RESPONSE: {
             LOG(DEBUG) << "ACTION_BML_DCS_GET_SCAN_RESULTS_RESPONSE received";
@@ -1519,13 +1573,22 @@ int bml_internal::get_dcs_continuous_scan_params(const sMacAddr &mac, int *outpu
     return (iRet);
 }
 
-int bml_internal::get_dcs_scan_results(const std::string &mac, BML_NEIGHBOR_AP **output_results,
+int bml_internal::get_dcs_scan_results(const sMacAddr &mac, BML_NEIGHBOR_AP **output_results,
                                        unsigned int *output_results_size,
                                        const unsigned int max_results_size,
                                        uint8_t *output_result_status, bool is_single_scan)
 {
-    if (m_sockPlatform == nullptr && !connect_to_platform()) {
-        return (-BML_RET_CONNECT_FAIL);
+    if (!output_results || !output_results_size || !output_result_status) {
+        LOG(ERROR) << "Function is called, but no data is being requested!";
+        return (-BML_RET_INVALID_DATA);
+    }
+
+    // If the socket is not valid, attempt to re-establish the connection
+    if (!m_sockMaster) {
+        int iRet = connect_to_master();
+        if (iRet != BML_RET_OK) {
+            return iRet;
+        }
     }
 
     // Initialize the promise for receiving the response
@@ -1533,15 +1596,12 @@ int bml_internal::get_dcs_scan_results(const std::string &mac, BML_NEIGHBOR_AP *
     m_prmChannelScanResultsGet    = &prmChannelScanResultsGet;
     int iOpTimeout                = DELAYED_RESPONSE_TIMEOUT; // Default timeout
     auto scan_results             = std::list<beerocks_message::sChannelScanResults>();
-    uint32_t scan_results_size    = 0;
     uint32_t scan_results_maxsize = uint32_t(max_results_size);
 
     m_scan_results         = &scan_results;
-    m_scan_results_size    = &scan_results_size;
     m_scan_results_maxsize = &scan_results_maxsize;
     m_scan_results_status  = output_result_status;
 
-    //CMDU message
     auto request = message_com::create_vs_message<
         beerocks_message::cACTION_BML_CHANNEL_SCAN_GET_RESULTS_REQUEST>(cmdu_tx);
 
@@ -1550,14 +1610,13 @@ int bml_internal::get_dcs_scan_results(const std::string &mac, BML_NEIGHBOR_AP *
         return (-BML_RET_OP_FAILED);
     }
 
-    request->radio_mac() = network_utils::mac_from_string(mac);
+    request->radio_mac() = mac;
     request->scan_mode() = (is_single_scan) ? 1 : 0;
     // Build and send the message
     if (!message_com::send_cmdu(m_sockMaster, cmdu_tx)) {
         LOG(ERROR) << "Failed sending param get message!";
         m_prmChannelScanResultsGet = nullptr;
         m_scan_results             = nullptr;
-        m_scan_results_size        = nullptr;
         m_scan_results_maxsize     = nullptr;
         m_scan_results_status      = nullptr;
         return (-BML_RET_OP_FAILED);
@@ -1573,7 +1632,6 @@ int bml_internal::get_dcs_scan_results(const std::string &mac, BML_NEIGHBOR_AP *
 
     // Clear the scan results members
     m_scan_results         = nullptr;
-    m_scan_results_size    = nullptr;
     m_scan_results_maxsize = nullptr;
     m_scan_results_status  = nullptr;
 

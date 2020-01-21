@@ -621,9 +621,10 @@ int bml_get_dcs_scan_results(BML_CTX ctx, const char *radio_mac,
         return (-BML_RET_INVALID_ARGS);
     }
 
-    bml_internal *pBML = (bml_internal *)ctx;
-    return pBML->get_dcs_scan_results(radio_mac, output_results, output_results_size,
-                                      *output_results_size, output_result_status, is_single_scan);
+    auto pBML = static_cast<bml_internal *>(ctx);
+    return pBML->get_dcs_scan_results(network_utils::mac_from_string(std::string(radio_mac)),
+                                      output_results, output_results_size, *output_results_size,
+                                      output_result_status, is_single_scan);
 }
 
 int bml_start_dcs_single_scan(BML_CTX ctx, const char *radio_mac, int dwell_time,

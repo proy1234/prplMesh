@@ -164,7 +164,7 @@ public:
                                        int *output_channel_pool_size);
 
     //get channel scan results
-    int get_dcs_scan_results(const std::string &mac, BML_NEIGHBOR_AP **output_results,
+    int get_dcs_scan_results(const sMacAddr &mac, BML_NEIGHBOR_AP **output_results,
                              unsigned int *output_results_size, const unsigned int max_results_size,
                              uint8_t *output_result_status, bool is_single_scan);
 
@@ -237,6 +237,7 @@ private:
     beerocks::promise<int> *m_prmRdkbWlan               = nullptr;
     //Promise used to indicate the GetParams response was received
     beerocks::promise<bool> *m_prmChannelScanParamsGet  = nullptr;
+    //Promise used to indicate the GetResults response was received
     beerocks::promise<int> *m_prmChannelScanResultsGet  = nullptr;
 
     std::map<uint8_t, beerocks::promise<int> *> m_prmCliResponses;
@@ -254,9 +255,11 @@ private:
     beerocks_message::sRestrictedChannels *m_Restricted_channels     = nullptr;
     //m_scan_params is used when receiving the channel scan parameters
     beerocks_message::sChannelScanRequestParams *m_scan_params       = nullptr;
+    //m_scan_results is used when receiving channel scan results
     std::list<beerocks_message::sChannelScanResults> *m_scan_results = nullptr;
+    //m_scan_results_status is used to store the results' latest status
     uint8_t *m_scan_results_status                                   = nullptr;
-    uint32_t *m_scan_results_size                                    = nullptr;
+    //m_scan_results_maxsize is used to indicate the maximum capacity of the requested results
     uint32_t *m_scan_results_maxsize                                 = nullptr;
     BML_VAP_INFO *m_vaps                                             = nullptr;
     uint8_t *m_pvaps_list_size                                       = nullptr;
