@@ -27,9 +27,12 @@ INITIALIZE_EASYLOGGINGPP
 ////////////////////////// Local Module Definitions //////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 
-#define SELECT_TIMEOUT (500)             // 500 milliseconds
-#define RESPONSE_TIMEOUT (5000)          // 5 seconds
-#define DELAYED_RESPONSE_TIMEOUT (30000) // 30 seconds
+//These timeout definitions used throughout the code.
+//Usually used for setting wait periods for promises,
+//and sleeping until a partial or complete response arrives.
+#define SELECT_TIMEOUT (500)             // equivelent of 0.5 seconds
+#define RESPONSE_TIMEOUT (5000)          // equivelent of 5 seconds
+#define DELAYED_RESPONSE_TIMEOUT (30000) // equivelent of 30 seconds
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////// Static Members Initialization ///////////////////////
