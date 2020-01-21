@@ -1767,12 +1767,26 @@ int cli_bml::set_dcs_continuous_scan_enable(const std::string &radio_mac, int8_t
 {
     std::cout << "set_dcs_continuous_scan_enable" << std::endl;
 
+    int ret = bml_set_dcs_continuous_scan_enable(ctx, radio_mac.c_str(), enable);
+
+    printBmlReturnVals("bml_set_dcs_continuous_scan_enable", ret);
+
     return 0;
 }
 
 int cli_bml::get_dcs_continuous_scan_enable(const std::string &radio_mac)
 {
     std::cout << "get_dcs_continuous_scan_enable" << std::endl;
+
+    int enable = -1;
+    int ret    = bml_get_dcs_continuous_scan_enable(ctx, radio_mac.c_str(), &enable);
+
+    if (ret == BML_RET_OK) {
+        std::cout << "dcs-continuous-scan-enable=" << ((enable == 1) ? "True" : "False")
+                  << std::endl;
+    }
+
+    printBmlReturnVals("bml_get_dcs_continuous_scan_enable", ret);
 
     return 0;
 }
@@ -1783,12 +1797,67 @@ int cli_bml::set_dcs_continuous_scan_params(const std::string &radio_mac, int dw
 {
     std::cout << "set_dcs_continuous_scan_params" << std::endl;
 
+    int ret = -1;
+    if (channel_pool.length() == 0 || channel_pool_size == BML_DCS_INVALID_PARAM) {
+        ret = bml_set_dcs_continuous_scan_params(ctx, radio_mac.c_str(), dwell_time, interval_time,
+                                                 nullptr, BML_DCS_INVALID_PARAM);
+    } else {
+        auto channels      = string_utils::str_split(channel_pool, ',');
+        auto channels_size = channels.size();
+
+        if (channels_size > BML_DCS_MAX_CHANNEL_POOL_SIZE) {
+            std::cout << "size of channel_pool is too big. size=" << channels_size << std::endl;
+            return -1;
+        }
+        if (channels_size > 0 && channels_size != (size_t)channel_pool_size) {
+            std::cout << "size of channel_pool(" << channels_size << ") != channel_pool_size("
+                      << channel_pool_size << ")" << std::endl;
+            return -1;
+        }
+
+        unsigned int channel_pool_arr[BML_DCS_MAX_CHANNEL_POOL_SIZE] = {0};
+
+        for (size_t i = 0; i < channels_size; i++) {
+            channel_pool_arr[i] = beerocks::string_utils::stoi(channels[i]);
+        }
+
+        ret = bml_set_dcs_continuous_scan_params(ctx, radio_mac.c_str(), dwell_time, interval_time,
+                                                 channel_pool_arr, channel_pool_size);
+    }
+    printBmlReturnVals("bml_set_dcs_continuous_scan_params", ret);
+
     return 0;
 }
 
 int cli_bml::get_dcs_continuous_scan_params(const std::string &radio_mac)
 {
     std::cout << "get_dcs_continuous_scan_params" << std::endl;
+
+    int dwell_time = -1, interval_time = -1, channel_pool_size = BML_DCS_MAX_CHANNEL_POOL_SIZE;
+    unsigned int channel_pool[BML_DCS_MAX_CHANNEL_POOL_SIZE] = {0};
+
+    int ret = bml_get_dcs_continuous_scan_params(ctx, radio_mac.c_str(), &dwell_time,
+                                                 &interval_time, channel_pool, &channel_pool_size);
+
+    if (ret == BML_RET_OK) {
+        std::cout << "dcs-continuous-scan-params for mac:" << std::endl
+                  << "dwell_time=" << dwell_time << std::endl
+                  << "interval_time=" << interval_time << std::endl;
+
+        std::cout << "channel_pool=";
+        for (int i = 0; i < channel_pool_size && i < BML_DCS_MAX_CHANNEL_POOL_SIZE; i++) {
+            if (channel_pool[i] > 0) {
+                if (i > 0) {
+                    std::cout << ",";
+                }
+                std::cout << channel_pool[i];
+            }
+        }
+        std::cout << std::endl;
+        std::cout << "channel_pool_size=" << channel_pool_size << std::endl;
+    }
+
+    printBmlReturnVals("bml_get_dcs_continuous_scan_params", ret);
 
     return 0;
 }
@@ -1798,6 +1867,44 @@ int cli_bml::start_dcs_single_scan(const std::string &radio_mac, int dwell_time,
 {
     std::cout << "start_dcs_single_scan" << std::endl;
 
+    if (dwell_time <= 0) {
+        std::cout << __func__ << "invalid input: dwell_time(" << dwell_time << ") <= 0"
+                  << std::endl;
+        return -1;
+    }
+
+    if (channel_pool.length() == 0 || channel_pool_size == BML_DCS_INVALID_PARAM) {
+        std::cout << __func__
+                  << "invalid channel_pool input: channel_pool.length()==" << channel_pool.length()
+                  << ", channel_pool_size==" << channel_pool_size << std::endl;
+        return -1;
+    }
+
+    auto channels      = string_utils::str_split(channel_pool, ',');
+    auto channels_size = channels.size();
+
+    if (channels_size > BML_DCS_MAX_CHANNEL_POOL_SIZE) {
+        std::cout << "size of channel_pool is too big. size=" << channels_size << std::endl;
+        return -1;
+    }
+
+    if (channels_size > 0 && channels_size != (size_t)channel_pool_size) {
+        std::cout << "size of channel_pool(" << channels_size << ") != channel_pool_size("
+                  << channel_pool_size << ")" << std::endl;
+        return -1;
+    }
+
+    unsigned int channel_pool_arr[BML_DCS_MAX_CHANNEL_POOL_SIZE] = {0};
+
+    for (size_t i = 0; i < channels_size; i++) {
+        channel_pool_arr[i] = beerocks::string_utils::stoi(channels[i]);
+    }
+
+    int ret = bml_start_dcs_single_scan(ctx, radio_mac.c_str(), dwell_time, channel_pool_size,
+                                        channel_pool_arr);
+
+    printBmlReturnVals("bml_get_dcs_continuous_scan_params", ret);
+
     return 0;
 }
 
@@ -1805,6 +1912,64 @@ int cli_bml::get_dcs_scan_results(const std::string &radio_mac, unsigned int max
                                   int8_t is_single_scan)
 {
     std::cout << "get_dcs_scan_results" << std::endl;
+
+    if (max_results_size == 0) {
+        std::cout << __func__ << "invalid input, max_results_size==0" << std::endl;
+        return -1;
+    }
+
+    struct BML_DCS_NEIGHBOR_AP *results = nullptr;
+
+    results =
+        (struct BML_DCS_NEIGHBOR_AP *)calloc(max_results_size, sizeof(struct BML_DCS_NEIGHBOR_AP));
+    if (results == nullptr) {
+        std::cout << __func__ << "failed allocate BML_DCS_NEIGHBOR_AP[" << max_results_size << "]"
+                  << std::endl;
+        return -1;
+    }
+
+    uint8_t status             = 0;
+    unsigned int results_count = max_results_size;
+    bool single_scan           = (is_single_scan == 1);
+    int ret = bml_get_dcs_scan_results(ctx, radio_mac.c_str(), &results, &results_count, &status,
+                                       single_scan);
+
+    if (ret == BML_RET_OK) {
+        if (results_count > max_results_size) {
+            std::cout << __func__ << "ERROR: results_count(" << results_count << ")"
+                      << " > max_results_size(" << max_results_size << ")" << std::endl;
+        } else if (status == 0 && results_count > 0) {
+            //todo: replace the temporary debug print with actual prints of the new results structure
+            for (size_t i = 0; i < results_count; i++) {
+                auto res = results[i];
+                std::cout << "result[" << i << "]:" << std::endl
+                          << "  ssid=" << res.ap_SSID << std::endl
+                          << "  bssid=" << res.ap_BSSID << std::endl
+                          << "  mode=" << res.ap_Mode << std::endl
+                          << "  channel=" << (int)res.ap_Channel << std::endl
+                          << "  signal_strength=" << (int)res.ap_SignalStrength << std::endl
+                          << "  security_mode_enabled=" << res.ap_SecurityModeEnabled << std::endl
+                          << "  encryption_mode=" << res.ap_EncryptionMode << std::endl
+                          << "  operating_frequency_band=" << res.ap_OperatingFrequencyBand
+                          << std::endl
+                          << "  supported_standards=" << res.ap_SupportedStandards << std::endl
+                          << "  operating_standards=" << res.ap_OperatingStandards << std::endl
+                          << "  operating_channel_bandwidth=" << res.ap_OperatingChannelBandwidth
+                          << std::endl
+                          << "  beacon_period=" << (int)res.ap_BeaconPeriod << std::endl
+                          << "  noise=" << (int)res.ap_Noise << std::endl
+                          << "  basic_data_transfer_rates=" << res.ap_BasicDataTransferRates
+                          << std::endl
+                          << "  supported_data_transfer_rates=" << res.ap_SupportedDataTransferRates
+                          << std::endl
+                          << "  dtim_period=" << (int)res.ap_DTIMPeriod << std::endl
+                          << "  channel_utilization=" << (int)res.ap_ChannelUtilization
+                          << std::endl;
+            }
+        }
+    }
+
+    free(results);
 
     return 0;
 }
