@@ -199,10 +199,10 @@ private:
     int set_dcs_continuous_scan_enable(const std::string &radio_mac, int8_t enable);
     int get_dcs_continuous_scan_enable(const std::string &radio_mac);
     int set_dcs_continuous_scan_params(const std::string &radio_mac,
-                                       int dwell_time                  = BML_DCS_INVALID_PARAM,
-                                       int interval_time               = BML_DCS_INVALID_PARAM,
+                                       int dwell_time                  = BML_CHANNEL_SCAN_INVALID_PARAM,
+                                       int interval_time               = BML_CHANNEL_SCAN_INVALID_PARAM,
                                        const std::string &channel_pool = std::string(),
-                                       int channel_pool_size           = BML_DCS_INVALID_PARAM);
+                                       int channel_pool_size           = BML_CHANNEL_SCAN_INVALID_PARAM);
     int get_dcs_continuous_scan_params(const std::string &radio_mac);
     int start_dcs_single_scan(const std::string &radio_mac, int dwell_time, int channel_pool_size,
                               const std::string &channel_pool);

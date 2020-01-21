@@ -1798,14 +1798,14 @@ int cli_bml::set_dcs_continuous_scan_params(const std::string &radio_mac, int dw
     std::cout << "set_dcs_continuous_scan_params" << std::endl;
 
     int ret = -1;
-    if (channel_pool.length() == 0 || channel_pool_size == BML_DCS_INVALID_PARAM) {
+    if (channel_pool.length() == 0 || channel_pool_size == BML_CHANNEL_SCAN_INVALID_PARAM) {
         ret = bml_set_dcs_continuous_scan_params(ctx, radio_mac.c_str(), dwell_time, interval_time,
-                                                 nullptr, BML_DCS_INVALID_PARAM);
+                                                 nullptr, BML_CHANNEL_SCAN_INVALID_PARAM);
     } else {
         auto channels      = string_utils::str_split(channel_pool, ',');
         auto channels_size = channels.size();
 
-        if (channels_size > BML_DCS_MAX_CHANNEL_POOL_SIZE) {
+        if (channels_size > BML_CHANNEL_SCAN_MAX_CHANNEL_POOL_SIZE) {
             std::cout << "size of channel_pool is too big. size=" << channels_size << std::endl;
             return -1;
         }
@@ -1815,7 +1815,7 @@ int cli_bml::set_dcs_continuous_scan_params(const std::string &radio_mac, int dw
             return -1;
         }
 
-        unsigned int channel_pool_arr[BML_DCS_MAX_CHANNEL_POOL_SIZE] = {0};
+        unsigned int channel_pool_arr[BML_CHANNEL_SCAN_MAX_CHANNEL_POOL_SIZE] = {0};
 
         for (size_t i = 0; i < channels_size; i++) {
             channel_pool_arr[i] = beerocks::string_utils::stoi(channels[i]);
@@ -1833,8 +1833,8 @@ int cli_bml::get_dcs_continuous_scan_params(const std::string &radio_mac)
 {
     std::cout << "get_dcs_continuous_scan_params" << std::endl;
 
-    int dwell_time = -1, interval_time = -1, channel_pool_size = BML_DCS_MAX_CHANNEL_POOL_SIZE;
-    unsigned int channel_pool[BML_DCS_MAX_CHANNEL_POOL_SIZE] = {0};
+    int dwell_time = -1, interval_time = -1, channel_pool_size = BML_CHANNEL_SCAN_MAX_CHANNEL_POOL_SIZE;
+    unsigned int channel_pool[BML_CHANNEL_SCAN_MAX_CHANNEL_POOL_SIZE] = {0};
 
     int ret = bml_get_dcs_continuous_scan_params(ctx, radio_mac.c_str(), &dwell_time,
                                                  &interval_time, channel_pool, &channel_pool_size);
@@ -1845,7 +1845,7 @@ int cli_bml::get_dcs_continuous_scan_params(const std::string &radio_mac)
                   << "interval_time=" << interval_time << std::endl;
 
         std::cout << "channel_pool=";
-        for (int i = 0; i < channel_pool_size && i < BML_DCS_MAX_CHANNEL_POOL_SIZE; i++) {
+        for (int i = 0; i < channel_pool_size && i < BML_CHANNEL_SCAN_MAX_CHANNEL_POOL_SIZE; i++) {
             if (channel_pool[i] > 0) {
                 if (i > 0) {
                     std::cout << ",";
@@ -1873,7 +1873,7 @@ int cli_bml::start_dcs_single_scan(const std::string &radio_mac, int dwell_time,
         return -1;
     }
 
-    if (channel_pool.length() == 0 || channel_pool_size == BML_DCS_INVALID_PARAM) {
+    if (channel_pool.length() == 0 || channel_pool_size == BML_CHANNEL_SCAN_INVALID_PARAM) {
         std::cout << __func__
                   << "invalid channel_pool input: channel_pool.length()==" << channel_pool.length()
                   << ", channel_pool_size==" << channel_pool_size << std::endl;
@@ -1883,7 +1883,7 @@ int cli_bml::start_dcs_single_scan(const std::string &radio_mac, int dwell_time,
     auto channels      = string_utils::str_split(channel_pool, ',');
     auto channels_size = channels.size();
 
-    if (channels_size > BML_DCS_MAX_CHANNEL_POOL_SIZE) {
+    if (channels_size > BML_CHANNEL_SCAN_MAX_CHANNEL_POOL_SIZE) {
         std::cout << "size of channel_pool is too big. size=" << channels_size << std::endl;
         return -1;
     }
@@ -1894,7 +1894,7 @@ int cli_bml::start_dcs_single_scan(const std::string &radio_mac, int dwell_time,
         return -1;
     }
 
-    unsigned int channel_pool_arr[BML_DCS_MAX_CHANNEL_POOL_SIZE] = {0};
+    unsigned int channel_pool_arr[BML_CHANNEL_SCAN_MAX_CHANNEL_POOL_SIZE] = {0};
 
     for (size_t i = 0; i < channels_size; i++) {
         channel_pool_arr[i] = beerocks::string_utils::stoi(channels[i]);
@@ -1918,12 +1918,12 @@ int cli_bml::get_dcs_scan_results(const std::string &radio_mac, unsigned int max
         return -1;
     }
 
-    struct BML_DCS_NEIGHBOR_AP *results = nullptr;
+    struct BML_NEIGHBOR_AP *results = nullptr;
 
     results =
-        (struct BML_DCS_NEIGHBOR_AP *)calloc(max_results_size, sizeof(struct BML_DCS_NEIGHBOR_AP));
+        (struct BML_NEIGHBOR_AP *)calloc(max_results_size, sizeof(struct BML_NEIGHBOR_AP));
     if (results == nullptr) {
-        std::cout << __func__ << "failed allocate BML_DCS_NEIGHBOR_AP[" << max_results_size << "]"
+        std::cout << __func__ << "failed allocate BML_NEIGHBOR_AP[" << max_results_size << "]"
                   << std::endl;
         return -1;
     }
