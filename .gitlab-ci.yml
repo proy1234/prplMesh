@@ -138,10 +138,10 @@ test-on-netgear-rax40:
 run-certification-tests:
   stage: test
   variables:
-    TESTS_TO_RUN: "tools/docker/tests/certification/all_controller_tests.txt"
+    TESTS_TO_RUN: "MAP-4.4.1_ETH"
     GIT_CLONE_PATH: "/builds/prpl-foundation/prplMesh/"
   script:
-      - /easymesh_cert/run_test_file.sh -o logs $TESTS_TO_RUN
+      - /easymesh_cert/run_test_file.sh -d qualcomm -o logs $TESTS_TO_RUN
   artifacts:
     paths:
       - logs
@@ -151,4 +151,3 @@ run-certification-tests:
   tags:
     - certs-tests
   timeout: 24h
-  when: manual
