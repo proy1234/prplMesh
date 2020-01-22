@@ -384,11 +384,6 @@ void monitor_thread::after_select(bool timeout)
                 }
                 clear_ready(mon_hal_nl_events);
             }
-        } else {
-            // There is no socket for external events
-            LOG(ERROR) << "no socket exists for mon_hal_nl_events";
-            thread_last_error_code = MONITOR_THREAD_ERROR_NL_ATTACH_FAIL;
-            return;
         }
 
         if (pending_11k_events.size() > 0) {
