@@ -153,14 +153,17 @@ test-on-netgear-rax40:
   variables:
     # TESTS_TO_RUN needs to be set by the user (or the pipeline schedule)
     GIT_CLONE_PATH: "/builds/prpl-foundation/prplMesh/"
+    DEVICE_UNDER_TEST: prplmesh
   script:
-      - /easymesh_cert/run_test_file.sh -o logs $TESTS_TO_RUN
+      - tools/deploy_ipk.sh prplmesh-rax40 tools/docker/builder/openwrt/*.ipk
+      - /easymesh_cert/run_test_file.sh -o logs -d $DEVICE_UNDER_TEST $TESTS_TO_RUN
   artifacts:
     paths:
       - logs
     when: always
   needs:
     - job: build-in-docker
+    - job: build-for-netgear-rax40
   tags:
     - certs-tests
   timeout: 24h
