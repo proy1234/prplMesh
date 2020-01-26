@@ -40,7 +40,7 @@ std::string cConfigData::ssid_str() {
 }
 
 char* cConfigData::ssid(size_t length) {
-    if( (m_ssid_idx__ <= 0) || (m_ssid_idx__ < length) ) {
+    if( (m_ssid_idx__ == 0) || (m_ssid_idx__ < length) ) {
         TLVF_LOG(ERROR) << "ssid length is smaller than requested length";
         return nullptr;
     }
@@ -125,7 +125,7 @@ std::string cConfigData::network_key_str() {
 }
 
 char* cConfigData::network_key(size_t length) {
-    if( (m_network_key_idx__ <= 0) || (m_network_key_idx__ < length) ) {
+    if( (m_network_key_idx__ == 0) || (m_network_key_idx__ < length) ) {
         TLVF_LOG(ERROR) << "network_key length is smaller than requested length";
         return nullptr;
     }
@@ -342,7 +342,7 @@ std::string cWscAttrEncryptedSettings::iv_str() {
 }
 
 char* cWscAttrEncryptedSettings::iv(size_t length) {
-    if( (m_iv_idx__ <= 0) || (m_iv_idx__ < length) ) {
+    if( (m_iv_idx__ == 0) || (m_iv_idx__ < length) ) {
         TLVF_LOG(ERROR) << "iv length is smaller than requested length";
         return nullptr;
     }
@@ -369,7 +369,7 @@ std::string cWscAttrEncryptedSettings::encrypted_settings_str() {
 }
 
 char* cWscAttrEncryptedSettings::encrypted_settings(size_t length) {
-    if( (m_encrypted_settings_idx__ <= 0) || (m_encrypted_settings_idx__ < length) ) {
+    if( (m_encrypted_settings_idx__ == 0) || (m_encrypted_settings_idx__ < length) ) {
         TLVF_LOG(ERROR) << "encrypted_settings length is smaller than requested length";
         return nullptr;
     }
@@ -550,7 +550,7 @@ uint8_t& cWscVendorExtWfa::subelement_value() {
 }
 
 uint8_t* cWscVendorExtWfa::vs_data(size_t idx) {
-    if ( (m_vs_data_idx__ <= 0) || (m_vs_data_idx__ <= idx) ) {
+    if ( (m_vs_data_idx__ == 0) || (m_vs_data_idx__ <= idx) ) {
         TLVF_LOG(ERROR) << "Requested index is greater than the number of available entries";
         return nullptr;
     }
@@ -917,7 +917,7 @@ const uint16_t& cWscAttrEnrolleeNonce::length() {
 }
 
 uint8_t* cWscAttrEnrolleeNonce::nonce(size_t idx) {
-    if ( (m_nonce_idx__ <= 0) || (m_nonce_idx__ <= idx) ) {
+    if ( (m_nonce_idx__ == 0) || (m_nonce_idx__ <= idx) ) {
         TLVF_LOG(ERROR) << "Requested index is greater than the number of available entries";
         return nullptr;
     }
@@ -1017,7 +1017,7 @@ const uint16_t& cWscAttrPublicKey::length() {
 }
 
 uint8_t* cWscAttrPublicKey::public_key(size_t idx) {
-    if ( (m_public_key_idx__ <= 0) || (m_public_key_idx__ <= idx) ) {
+    if ( (m_public_key_idx__ == 0) || (m_public_key_idx__ <= idx) ) {
         TLVF_LOG(ERROR) << "Requested index is greater than the number of available entries";
         return nullptr;
     }
@@ -1502,7 +1502,7 @@ std::string cWscAttrManufacturer::manufacturer_str() {
 }
 
 char* cWscAttrManufacturer::manufacturer(size_t length) {
-    if( (m_manufacturer_idx__ <= 0) || (m_manufacturer_idx__ < length) ) {
+    if( (m_manufacturer_idx__ == 0) || (m_manufacturer_idx__ < length) ) {
         TLVF_LOG(ERROR) << "manufacturer length is smaller than requested length";
         return nullptr;
     }
@@ -1649,7 +1649,7 @@ std::string cWscAttrModelName::model_str() {
 }
 
 char* cWscAttrModelName::model(size_t length) {
-    if( (m_model_idx__ <= 0) || (m_model_idx__ < length) ) {
+    if( (m_model_idx__ == 0) || (m_model_idx__ < length) ) {
         TLVF_LOG(ERROR) << "model length is smaller than requested length";
         return nullptr;
     }
@@ -1796,7 +1796,7 @@ std::string cWscAttrModelNumber::model_number_str() {
 }
 
 char* cWscAttrModelNumber::model_number(size_t length) {
-    if( (m_model_number_idx__ <= 0) || (m_model_number_idx__ < length) ) {
+    if( (m_model_number_idx__ == 0) || (m_model_number_idx__ < length) ) {
         TLVF_LOG(ERROR) << "model_number length is smaller than requested length";
         return nullptr;
     }
@@ -1943,7 +1943,7 @@ std::string cWscAttrSerialNumber::serial_number_str() {
 }
 
 char* cWscAttrSerialNumber::serial_number(size_t length) {
-    if( (m_serial_number_idx__ <= 0) || (m_serial_number_idx__ < length) ) {
+    if( (m_serial_number_idx__ == 0) || (m_serial_number_idx__ < length) ) {
         TLVF_LOG(ERROR) << "serial_number length is smaller than requested length";
         return nullptr;
     }
@@ -2210,7 +2210,7 @@ std::string cWscAttrDeviceName::device_name_str() {
 }
 
 char* cWscAttrDeviceName::device_name(size_t length) {
-    if( (m_device_name_idx__ <= 0) || (m_device_name_idx__ < length) ) {
+    if( (m_device_name_idx__ == 0) || (m_device_name_idx__ < length) ) {
         TLVF_LOG(ERROR) << "device_name length is smaller than requested length";
         return nullptr;
     }
@@ -2919,7 +2919,7 @@ const uint16_t& cWscAttrUuidE::length() {
 }
 
 uint8_t* cWscAttrUuidE::data(size_t idx) {
-    if ( (m_data_idx__ <= 0) || (m_data_idx__ <= idx) ) {
+    if ( (m_data_idx__ == 0) || (m_data_idx__ <= idx) ) {
         TLVF_LOG(ERROR) << "Requested index is greater than the number of available entries";
         return nullptr;
     }
@@ -3113,7 +3113,7 @@ const uint16_t& cWscAttrUuidR::length() {
 }
 
 uint8_t* cWscAttrUuidR::data(size_t idx) {
-    if ( (m_data_idx__ <= 0) || (m_data_idx__ <= idx) ) {
+    if ( (m_data_idx__ == 0) || (m_data_idx__ <= idx) ) {
         TLVF_LOG(ERROR) << "Requested index is greater than the number of available entries";
         return nullptr;
     }
@@ -3213,7 +3213,7 @@ const uint16_t& cWscAttrAuthenticator::length() {
 }
 
 uint8_t* cWscAttrAuthenticator::data(size_t idx) {
-    if ( (m_data_idx__ <= 0) || (m_data_idx__ <= idx) ) {
+    if ( (m_data_idx__ == 0) || (m_data_idx__ <= idx) ) {
         TLVF_LOG(ERROR) << "Requested index is greater than the number of available entries";
         return nullptr;
     }
@@ -3313,7 +3313,7 @@ const uint16_t& cWscAttrRegistrarNonce::length() {
 }
 
 uint8_t* cWscAttrRegistrarNonce::nonce(size_t idx) {
-    if ( (m_nonce_idx__ <= 0) || (m_nonce_idx__ <= idx) ) {
+    if ( (m_nonce_idx__ == 0) || (m_nonce_idx__ <= idx) ) {
         TLVF_LOG(ERROR) << "Requested index is greater than the number of available entries";
         return nullptr;
     }
@@ -3573,7 +3573,7 @@ std::string cWscAttrSsid::ssid_str() {
 }
 
 char* cWscAttrSsid::ssid(size_t length) {
-    if( (m_ssid_idx__ <= 0) || (m_ssid_idx__ < length) ) {
+    if( (m_ssid_idx__ == 0) || (m_ssid_idx__ < length) ) {
         TLVF_LOG(ERROR) << "ssid length is smaller than requested length";
         return nullptr;
     }
@@ -3910,7 +3910,7 @@ std::string cWscAttrNetworkKey::key_str() {
 }
 
 char* cWscAttrNetworkKey::key(size_t length) {
-    if( (m_key_idx__ <= 0) || (m_key_idx__ < length) ) {
+    if( (m_key_idx__ == 0) || (m_key_idx__ < length) ) {
         TLVF_LOG(ERROR) << "key length is smaller than requested length";
         return nullptr;
     }
