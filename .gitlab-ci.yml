@@ -165,11 +165,6 @@ test-on-netgear-rax40:
     # device to test with: prplmesh for dummy bwl, prplmesh-rax40 for dwpal on rax40
     DEVICE_UNDER_TEST: prplmesh
   script:
-      - |
-        if [ "$DEVICE_UNDER_TEST" != prplmesh ] ; then
-            echo "Deploying to $DEVICE_UNDER_TEST"
-            tools/deploy_ipk.sh --certification-mode $DEVICE_UNDER_TEST build/$DEVICE_UNDER_TEST/*.ipk
-        fi
       - /easymesh_cert/run_test_file.sh -o logs -d $DEVICE_UNDER_TEST $TESTS_TO_RUN
   artifacts:
     paths:
@@ -190,3 +185,27 @@ scheduled-certification-tests:
 manual-certification-tests:
   extends: .run-certification-tests
   when: manual
+
+agent-certs-tests-qualcomm:
+  extends: .run-certification-tests
+  variables:
+    DEVICE_UNDER_TEST: qualcomm
+    TESTS_TO_RUN: tests/certification/$DEVICE_UNDER_TEST.txt
+
+agent-certs-tests-broadcom:
+  extends: .run-certification-tests
+  variables:
+    DEVICE_UNDER_TEST: broadcom
+    TESTS_TO_RUN: tests/certification/$DEVICE_UNDER_TEST.txt
+
+agent-certs-tests-mediatek:
+  extends: .run-certification-tests
+  variables:
+    DEVICE_UNDER_TEST: mediatek
+    TESTS_TO_RUN: tests/certification/$DEVICE_UNDER_TEST.txt
+
+agent-certs-tests-marvell:
+  extends: .run-certification-tests
+  variables:
+    DEVICE_UNDER_TEST: marvell
+    TESTS_TO_RUN: tests/certification/$DEVICE_UNDER_TEST.txt
