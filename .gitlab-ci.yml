@@ -152,27 +152,45 @@ test-on-netgear-rax40:
   stage: test
   variables:
     # TESTS_TO_RUN needs to be set by the user (or the pipeline schedule)
+    # DEVICE_UNDER_TEST needs to be set by the user or pipeline schedule
     GIT_CLONE_PATH: "/builds/prpl-foundation/prplMesh/"
-    DEVICE_UNDER_TEST: prplmesh
   script:
-      - tools/deploy_ipk.sh prplmesh-rax40 tools/docker/builder/openwrt/*.ipk
+      - |
+        if [ "$DEVICE_UNDER_TEST" != prplmesh ] ; then
+            echo "Deploying to $DEVICE_UNDER_TEST"
+            tools/deploy_ipk.sh $DEVICE_UNDER_TEST build/$DEVICE_UNDER_TEST/*.ipk
+        fi
       - /easymesh_cert/run_test_file.sh -o logs -d $DEVICE_UNDER_TEST $TESTS_TO_RUN
   artifacts:
     paths:
       - logs
     when: always
-  needs:
-    - job: build-in-docker
-    - job: build-for-netgear-rax40
   tags:
     - certs-tests
   timeout: 24h
 
-scheduled-certification-tests:
+certification-tests-ubuntu:
   extends: .run-certification-tests
-  only:
-    - schedules
+  rules:
+    # if DUT is unset, create a manual job
+    - if: '$TESTS_TO_RUN == null'
+      when: manual
+    - if: '$CERTS_TESTS_ON_UBUNTU'
+      when: always
+  variables:
+    DEVICE_UNDER_TEST: prplmesh
+  needs:
+    - job: build-in-docker
 
-manual-certification-tests:
+certification-tests-rax40:
   extends: .run-certification-tests
-  when: manual
+  rules:
+    # if DUT is unset, create a manual job
+    - if: '$TESTS_TO_RUN == null'
+      when: manual
+    - if: '$CERTS_TESTS_ON_RAX40'
+      when: always
+  variables:
+    DEVICE_UNDER_TEST: netgear-rax40
+  needs:
+    - job: build-for-netgear-rax40
