@@ -65,3 +65,12 @@ uint16_t CmduMessage::getMessageId()
 
     return mid;
 }
+
+void CmduMessage::setMessageId(uint16_t mid)
+{
+    auto cmduhdr = getCmduHeader();
+
+    if (cmduhdr->is_finalized())
+        swap_16((uint16_t &)mid);
+    cmduhdr->message_id() = mid;
+}
