@@ -6,6 +6,7 @@ set(MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 
 file(GLOB beerocks_agent_sources 
     ${MODULE_PATH}/backhaul_manager/*.c*
+    ${MODULE_PATH}/link_metrics/*.c*
     ${MODULE_PATH}/platform_manager/*.c*
     ${MODULE_PATH}/*.c*
 )
