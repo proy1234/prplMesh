@@ -8,6 +8,7 @@
 
 #include "backhaul_manager_thread.h"
 
+#include "../link_metrics/ieee802_3_link_metrics_collector.h"
 #include "../tlvf_utils.h"
 
 #include <bcl/beerocks_utils.h>
@@ -29,6 +30,8 @@
 #include <tlvf/ieee_1905_1/tlvAutoconfigFreqBand.h>
 #include <tlvf/ieee_1905_1/tlvDeviceInformation.h>
 #include <tlvf/ieee_1905_1/tlvEndOfMessage.h>
+#include <tlvf/ieee_1905_1/tlvLinkMetricQuery.h>
+#include <tlvf/ieee_1905_1/tlvLinkMetricResultCode.h>
 #include <tlvf/ieee_1905_1/tlvMacAddress.h>
 #include <tlvf/ieee_1905_1/tlvReceiverLinkMetric.h>
 #include <tlvf/ieee_1905_1/tlvSearchedRole.h>
@@ -73,6 +76,151 @@ namespace beerocks {
 //////////////////////////////////////////////////////////////////////////////
 
 const char *backhaul_manager::s_arrStates[] = {FOREACH_STATE(GENERATE_STRING)};
+
+/**
+ * @brief Adds link metrics to response message.
+ *
+ * Gets link metrics of the interface between the reporter AL MAC and the neighbor AL MAC.
+ * Creates a Transmitter Link Metric TLV or a Receiver Link Metric TLV or both and adds them to
+ * the response message.
+ *
+ * @param[in] local_interface_name Name of the local interface.
+ * @param[in] media_type The underlying network technology of the connecting interface.
+ * @param[in] reporter_al_mac 1905.1 AL MAC address of the device that transmits the response message.
+ * @param[in] neighbor_al_mac 1905.1 AL MAC address of a neighbor of the receiving device.
+ * @param[in] link_metrics_type The link metrics type requested: TX, RX or both.
+ * @param[in, out] cmdu_tx CMDU response message where TLVs must be added to.
+ */
+static bool add_link_metrics(const std::string &local_interface_name,
+                             ieee1905_1::eMediaType media_type, const sMacAddr &reporter_al_mac,
+                             const sMacAddr &neighbor_al_mac,
+                             ieee1905_1::eLinkMetricsType link_metrics_type,
+                             ieee1905_1::CmduMessageTx &cmdu_tx)
+{
+    /**
+     * Metrics information associated to the link between the local interface and the neighbor's interface.
+     */
+    sLinkMetrics link_metrics;
+
+    /**
+     * Link metrics collector to use to get link metrics in the connecting interface.
+     */
+    std::unique_ptr<link_metrics_collector> collector;
+
+    /**
+     * Get a link metrics collector suitable for the underlying network technology of the
+     * connecting interface.
+     * Collector choice depends on bits 15 to 8 of media type.
+     */
+    uint8_t media_type_msb = media_type >> 8;
+    if (0 == media_type_msb) {
+        collector = std::make_unique<ieee802_3_link_metrics_collector>();
+    } else if (1 == media_type_msb) {
+        // TODO: Create a collector for wireless interfaces
+        //collector = std::make_unique<ieee802_11_link_metrics_collector>();
+    } else {
+        LOG(ERROR) << "Unsupported media type: " << std::hex << (int)media_type;
+        return (false);
+    }
+
+    /**
+     * Get link metrics information
+     */
+    if (collector &&
+        collector->get_link_metrics(local_interface_name, neighbor_al_mac, link_metrics)) {
+
+        /**
+         * Get local interface information to obtain its MAC address.
+         */
+        network_utils::iface_info iface_info;
+        if (network_utils::get_iface_info(iface_info, local_interface_name) != 0) {
+            LOG(ERROR) << "Failed reading interface info for: " << local_interface_name;
+            return (false);
+        }
+        sMacAddr local_interface_mac = network_utils::mac_from_string(iface_info.mac);
+
+        /**
+         * Add Transmitter Link Metric TLV if specifically requested or both requested
+         */
+        if ((ieee1905_1::eLinkMetricsType::TX_LINK_METRICS_ONLY == link_metrics_type) ||
+            (ieee1905_1::eLinkMetricsType::BOTH_TX_AND_RX_LINK_METRICS == link_metrics_type)) {
+            auto tlvTransmitterLinkMetric =
+                cmdu_tx.addClass<ieee1905_1::tlvTransmitterLinkMetric>();
+            if (!tlvTransmitterLinkMetric) {
+                LOG(ERROR) << "addClass ieee1905_1::tlvTransmitterLinkMetric failed";
+                return false;
+            }
+
+            tlvTransmitterLinkMetric->reporter_al_mac() = reporter_al_mac;
+            tlvTransmitterLinkMetric->neighbor_al_mac() = neighbor_al_mac;
+
+            if (!tlvTransmitterLinkMetric->alloc_interface_pair_info()) {
+                LOG(ERROR) << "alloc_interface_pair_info failed";
+                return false;
+            }
+            auto interface_pair_info = tlvTransmitterLinkMetric->interface_pair_info(0);
+            if (!std::get<0>(interface_pair_info)) {
+                LOG(ERROR) << "Failed accessing interface_pair_info";
+                return false;
+            }
+            auto interfacePairInfo                      = std::get<1>(interface_pair_info);
+            interfacePairInfo.rc_interface_mac          = local_interface_mac;
+            interfacePairInfo.neighbor_interface_mac    = neighbor_al_mac;
+            interfacePairInfo.link_metric_info.intfType = media_type;
+            // TODO
+            //Indicates whether or not the 1905.1 link includes one or more IEEE 802.1 bridges
+            //eIEEE802_1BridgeFlag IEEE802_1BridgeFlag;
+            interfacePairInfo.link_metric_info.packet_errors =
+                link_metrics.transmitter.packet_errors;
+            interfacePairInfo.link_metric_info.transmitted_packets =
+                link_metrics.transmitter.transmitted_packets;
+            interfacePairInfo.link_metric_info.mac_throughput_capacity =
+                link_metrics.transmitter.mac_throughput_capacity;
+            interfacePairInfo.link_metric_info.link_availability =
+                link_metrics.transmitter.link_availability;
+            interfacePairInfo.link_metric_info.phy_rate = link_metrics.transmitter.phy_rate;
+        }
+
+        /**
+         * Add Receiver Link Metric TLV if specifically requested or both requested
+         */
+        if ((ieee1905_1::eLinkMetricsType::RX_LINK_METRICS_ONLY == link_metrics_type) ||
+            (ieee1905_1::eLinkMetricsType::BOTH_TX_AND_RX_LINK_METRICS == link_metrics_type)) {
+            auto tlvReceiverLinkMetric = cmdu_tx.addClass<ieee1905_1::tlvReceiverLinkMetric>();
+            if (!tlvReceiverLinkMetric) {
+                LOG(ERROR) << "addClass ieee1905_1::tlvReceiverLinkMetric failed";
+                return false;
+            }
+
+            tlvReceiverLinkMetric->reporter_al_mac() = reporter_al_mac;
+            tlvReceiverLinkMetric->neighbor_al_mac() = neighbor_al_mac;
+
+            if (!tlvReceiverLinkMetric->alloc_interface_pair_info()) {
+                LOG(ERROR) << "alloc_interface_pair_info failed";
+                return false;
+            }
+            auto interface_pair_info = tlvReceiverLinkMetric->interface_pair_info(0);
+            if (!std::get<0>(interface_pair_info)) {
+                LOG(ERROR) << "Failed accessing interface_pair_info";
+                return false;
+            }
+            auto interfacePairInfo                           = std::get<1>(interface_pair_info);
+            interfacePairInfo.rc_interface_mac               = local_interface_mac;
+            interfacePairInfo.neighbor_interface_mac         = neighbor_al_mac;
+            interfacePairInfo.link_metric_info.intfType      = media_type;
+            interfacePairInfo.link_metric_info.packet_errors = link_metrics.receiver.packet_errors;
+            interfacePairInfo.link_metric_info.packets_received =
+                link_metrics.receiver.packets_received;
+            interfacePairInfo.link_metric_info.rssi_db = link_metrics.receiver.rssi;
+        }
+    } else {
+        LOG(ERROR) << "Unable to get link link_metrics for interface " << local_interface_name
+                   << " and neighbor " << network_utils::mac_to_string(neighbor_al_mac);
+        return false;
+    }
+
+    return true;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Implementation ///////////////////////////////
@@ -1802,6 +1950,9 @@ bool backhaul_manager::handle_1905_1_message(ieee1905_1::CmduMessageRx &cmdu_rx,
     case ieee1905_1::eMessageType::HIGHER_LAYER_DATA_MESSAGE: {
         return handle_1905_higher_layer_data_message(cmdu_rx, src_mac);
     }
+    case ieee1905_1::eMessageType::LINK_METRIC_QUERY_MESSAGE: {
+        return handle_1905_link_metric_query(cmdu_rx, src_mac);
+    }
     case ieee1905_1::eMessageType::COMBINED_INFRASTRUCTURE_METRICS_MESSAGE: {
         return handle_1905_combined_infrastructure_metrics(cmdu_rx, src_mac);
     }
@@ -2066,6 +2217,197 @@ bool backhaul_manager::handle_1905_higher_layer_data_message(ieee1905_1::CmduMes
         return false;
     }
     LOG(DEBUG) << "sending ACK message to the originator, mid=" << std::hex << int(mid);
+    return send_cmdu_to_bus(cmdu_tx, src_mac, bridge_info.mac);
+}
+
+bool backhaul_manager::handle_1905_link_metric_query(ieee1905_1::CmduMessageRx &cmdu_rx,
+                                                     const std::string &src_mac)
+{
+    const auto mid = cmdu_rx.getMessageId();
+    LOG(DEBUG) << "Received LINK_METRIC_QUERY_MESSAGE, mid=" << std::hex << int(mid);
+
+    /**
+     * Optional fields are not currently supported by TLVF.
+     * The IEEE 1905.1 standard says about the Link Metric Query TLV and the neighbor type octet
+     * that "If the value is 0, then the EUI48 field is not present; if the value is 1, then the
+     * EUI-48 field shall be present."
+     *
+     * As a workaround, we define two different TLVs instead of a single tlvLinkMetricQuery with an
+     * optional field. Application must then check the length of received message to know if optional
+     * field is present or not and then create an instance of one of these classes:
+     * tlvLinkMetricQueryAllNeighbors or tlvLinkMetricQuerySpecificNeighbor.
+     */
+    size_t message_length = cmdu_rx.getMessageLength();
+    LOG(INFO) << "message_length: " << std::to_string(message_length);
+
+    std::shared_ptr<ieee1905_1::tlvLinkMetricQueryAllNeighbors> tlvLinkMetricQueryAllNeighbors;
+    std::shared_ptr<ieee1905_1::tlvLinkMetricQuerySpecificNeighbor>
+        tlvLinkMetricQuerySpecificNeighbor;
+    if (8 == message_length) {
+        tlvLinkMetricQuerySpecificNeighbor =
+            cmdu_rx.getClass<ieee1905_1::tlvLinkMetricQuerySpecificNeighbor>();
+        if (!tlvLinkMetricQuerySpecificNeighbor) {
+            LOG(ERROR) << "getClass ieee1905_1::tlvLinkMetricQuerySpecificNeighbor failed";
+            return false;
+        }
+    } else {
+        tlvLinkMetricQueryAllNeighbors =
+            cmdu_rx.getClass<ieee1905_1::tlvLinkMetricQueryAllNeighbors>();
+        if (!tlvLinkMetricQueryAllNeighbors) {
+            LOG(ERROR) << "getClass ieee1905_1::tlvLinkMetricQueryAllNeighbors failed";
+            return false;
+        }
+    }
+
+    /**
+     * 1905.1 AL MAC address of the device that transmits the response message.
+     */
+    sMacAddr reporter_al_mac = network_utils::mac_from_string(bridge_info.mac);
+
+    /**
+     * 1905.1 AL MAC address of a neighbor of the receiving device.
+     * Query can specify a particular neighbor device or all neighbor devices.
+     */
+    sMacAddr neighbor_al_mac = network_utils::ZERO_MAC;
+
+    /**
+     * Obtain link metrics for either all neighbors or a specific neighbor
+     */
+    ieee1905_1::eLinkMetricNeighborType neighbor_type;
+
+    /**
+     * The link metrics type requested: TX, RX or both
+     */
+    ieee1905_1::eLinkMetricsType link_metrics_type;
+
+    if (tlvLinkMetricQuerySpecificNeighbor) {
+        neighbor_type = tlvLinkMetricQuerySpecificNeighbor->neighbor_type();
+        if (ieee1905_1::eLinkMetricNeighborType::SPECIFIC_NEIGHBOR != neighbor_type) {
+            LOG(ERROR) << "Unexpected neighbor type: " << std::hex << int(neighbor_type);
+            return false;
+        }
+        neighbor_al_mac   = tlvLinkMetricQuerySpecificNeighbor->mac_al_1905_device();
+        link_metrics_type = tlvLinkMetricQuerySpecificNeighbor->link_metrics_type();
+    } else {
+        neighbor_type = tlvLinkMetricQueryAllNeighbors->neighbor_type();
+        if (ieee1905_1::eLinkMetricNeighborType::ALL_NEIGHBORS != neighbor_type) {
+            LOG(ERROR) << "Unexpected neighbor type: " << std::hex << int(neighbor_type);
+            return false;
+        }
+        link_metrics_type = tlvLinkMetricQueryAllNeighbors->link_metrics_type();
+    }
+
+    /**
+     * Create response message
+     */
+    auto cmdu_tx_header =
+        cmdu_tx.create(mid, ieee1905_1::eMessageType::LINK_METRIC_RESPONSE_MESSAGE);
+    if (!cmdu_tx_header) {
+        LOG(ERROR) << "Failed creating LINK_METRIC_RESPONSE_MESSAGE header! mid=" << std::hex
+                   << (int)mid;
+        return false;
+    }
+
+    /**
+     * If the specified neighbor 1905.1 AL ID does not identify a neighbor of the receiving 1905.1
+     * AL, then a link metric ResultCode TLV (see Table 6-21) with a value set to “invalid
+     * neighbor” shall be included in this message.
+     */
+    bool invalid_neighbor = false;
+    if (ieee1905_1::eLinkMetricNeighborType::SPECIFIC_NEIGHBOR == neighbor_type) {
+
+        // TODO: check if specified neighbor is invalid (topology database is required for that)
+    }
+
+    if (invalid_neighbor) {
+        auto tlvLinkMetricResultCode = cmdu_tx.addClass<ieee1905_1::tlvLinkMetricResultCode>();
+        if (!tlvLinkMetricResultCode) {
+            LOG(ERROR) << "addClass ieee1905_1::tlvLinkMetricResultCode failed, mid=" << std::hex
+                       << (int)mid;
+            return false;
+        }
+
+        tlvLinkMetricResultCode->value() = ieee1905_1::tlvLinkMetricResultCode::INVALID_NEIGHBOR;
+    } else if (ieee1905_1::eLinkMetricNeighborType::SPECIFIC_NEIGHBOR == neighbor_type) {
+
+        /**
+         * Name of the interface in the receiving 1905.1 AL, which connects to an interface in the neighbor
+         * 1905.1 AL.
+         */
+        std::string local_interface_name;
+
+        /**
+         * The underlying network technology of the connecting interface
+         */
+        ieee1905_1::eMediaType media_type = ieee1905_1::eMediaType::UNKNONWN_MEDIA;
+
+        if ((network_utils::mac_to_string(neighbor_al_mac) == controller_bridge_mac) &&
+            (SBackhaulConfig::EType::Wired == m_sConfig.eType)) {
+            /**
+             * If specified neighbor is the controller and it is connected through the wired backhaul
+             * interface, then interface is the wired backhaul interface.
+             */
+            local_interface_name = m_sConfig.wire_iface;
+
+            /**
+             * Compute particular Ethernet media type from interface speed
+             */
+            uint32_t speed;
+            if (network_utils::linux_iface_get_speed(local_interface_name, speed)) {
+                if (SPEED_100 == speed) {
+                    media_type = ieee1905_1::eMediaType::IEEE_802_3U_FAST_ETHERNET;
+                } else if (SPEED_1000 <= speed) {
+                    media_type = ieee1905_1::eMediaType::IEEE_802_3AB_GIGABIT_ETHERNET;
+                }
+            }
+
+        } else {
+            //TODO this is a valid neighbor so it must be connected through a wireless interface, which is not yet supported
+        }
+
+        /**
+         * Obtain link metrics and add a Transmitter Link Metric TLV or a Receiver Link Metric TLV
+         * or both to response message.
+         */
+        if (!add_link_metrics(local_interface_name, media_type, reporter_al_mac, neighbor_al_mac,
+                              link_metrics_type, cmdu_tx)) {
+            return false;
+        }
+    } else {
+
+        /**
+         * Link metrics for all neighbors are required.
+         * We can assume one neighbor per interface and vice versa.
+         * Interfaces on which there is no neighbor are ignored.
+         */
+
+        /**
+         * If wired backhaul interface is in use, then report link metrics for it.
+         */
+        if (SBackhaulConfig::EType::Wired == m_sConfig.eType) {
+
+            std::string local_interface_name  = m_sConfig.wire_iface;
+            ieee1905_1::eMediaType media_type = ieee1905_1::eMediaType::UNKNONWN_MEDIA;
+            uint32_t speed;
+            if (network_utils::linux_iface_get_speed(local_interface_name, speed)) {
+                if (SPEED_100 == speed) {
+                    media_type = ieee1905_1::eMediaType::IEEE_802_3U_FAST_ETHERNET;
+                } else if (SPEED_1000 <= speed) {
+                    media_type = ieee1905_1::eMediaType::IEEE_802_3AB_GIGABIT_ETHERNET;
+                }
+            }
+
+            if (!add_link_metrics(local_interface_name, media_type, reporter_al_mac,
+                                  network_utils::mac_from_string(controller_bridge_mac),
+                                  link_metrics_type, cmdu_tx)) {
+                return false;
+            }
+        }
+
+        // TODO: report wireless interfaces connecting to all neighbors (topology db required)
+    }
+
+    LOG(DEBUG) << "Sending LINK_METRIC_RESPONSE_MESSAGE, mid: " << std::hex << (int)mid;
     return send_cmdu_to_bus(cmdu_tx, src_mac, bridge_info.mac);
 }
 
