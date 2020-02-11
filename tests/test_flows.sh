@@ -14,7 +14,7 @@
 # but just doing the optimal_path_dummy test first is simpler for the time being.
 # FIXME optimal_path_dummy temporarily disabled since it's broken
 ALL_TESTS="topology initial_ap_config ap_config_renew ap_config_bss_tear_down channel_selection
-           ap_capability_query client_capability_query combined_infra_metrics
+           ap_capability_query client_capability_query link_metric_query combined_infra_metrics
            client_steering_mandate client_steering_dummy client_association_dummy client_steering_policy client_association
            higher_layer_data_payload_trigger"
 
@@ -209,6 +209,7 @@ test_channel_selection() {
 
     return $check_error
 }
+
 test_client_capability_query() { 
     status "test client capability"
 
@@ -221,6 +222,7 @@ test_client_capability_query() {
     check_log ${REPEATER1} agent_wlan0 "CLIENT_CAPABILITY_QUERY_MESSAGE"
     check_log ${REPEATER1} agent_wlan2 "CLIENT_CAPABILITY_QUERY_MESSAGE"
 }
+
 test_ap_capability_query() {
     status "test ap capability query"
     check_error=0
@@ -232,6 +234,23 @@ test_ap_capability_query() {
     
     dbg "Confirming ap capability report has been received on controller"
     check_log ${GATEWAY} controller "AP_CAPABILITY_REPORT_MESSAGE"
+    
+    return $check_error
+}
+
+test_link_metric_query() {
+    status "test link metric query"
+    check_error=0
+    check send_CAPI_1905 ${GATEWAY} $mac_agent1 0x0005 "tlv_type,0x08,tlv_length,0x0002,tlv_value,0x00 0x02"
+    sleep 1
+    
+    dbg "Confirming link metric query has been received on agent"
+    check_log ${REPEATER1} agent "Received LINK_METRIC_QUERY_MESSAGE"
+    
+    dbg "Confirming link metric response has been received on controller"
+    check_log ${GATEWAY} controller "Received LINK_METRIC_RESPONSE_MESSAGE"
+    check_log ${GATEWAY} controller "Received TLV_TRANSMITTER_LINK_METRIC"
+    check_log ${GATEWAY} controller "Received TLV_RECEIVER_LINK_METRIC"
     
     return $check_error
 }
@@ -642,6 +661,7 @@ usage() {
     echo "      client_association - Client Association Control Message test"
     echo "      ap_capability_query - AP Capability query test"
     echo "      client_capability_query - Client Capability info reporting test"
+    echo "      link_metric_query - Link Metric Query test"
     echo "      combined_infra_metrics - Combined Infrastructure Metrics test"
     echo "      higher_layer_data_payload_trigger - Higher layer data payload over 1905 trigger test"
 }
