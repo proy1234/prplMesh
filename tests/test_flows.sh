@@ -15,6 +15,7 @@
 # FIXME optimal_path_dummy temporarily disabled since it's broken
 ALL_TESTS="topology ap_config_renew ap_config_bss_tear_down
            client_capability_query
+           link_metric_query
            client_steering_dummy client_association_dummy client_steering_policy client_association
            higher_layer_data_payload_trigger"
 
@@ -197,6 +198,23 @@ test_client_capability_query() {
     dbg "Confirming client capability report message has been received on controller"
     check_log ${GATEWAY} controller "Received CLIENT_CAPABILITY_REPORT_MESSAGE"
     check_log ${GATEWAY} controller "Result Code= SUCCESS, client MAC= ${sta_mac2}, BSSID= ${mac_agent1_wlan0}"
+    return $check_error
+}
+
+test_link_metric_query() {
+    status "test link metric query"
+    check_error=0
+    check send_CAPI_1905 ${GATEWAY} $mac_agent1 0x0005 "tlv_type,0x08,tlv_length,0x0002,tlv_value,0x00 0x02"
+    sleep 1
+    
+    dbg "Confirming link metric query has been received on agent"
+    check_log ${REPEATER1} agent "Received LINK_METRIC_QUERY_MESSAGE"
+    
+    dbg "Confirming link metric response has been received on controller"
+    check_log ${GATEWAY} controller "Received LINK_METRIC_RESPONSE_MESSAGE"
+    check_log ${GATEWAY} controller "Received TLV_TRANSMITTER_LINK_METRIC"
+    check_log ${GATEWAY} controller "Received TLV_RECEIVER_LINK_METRIC"
+    
     return $check_error
 }
 
@@ -511,6 +529,7 @@ usage() {
     echo "      client_association_dummy - Client Association Control Message using dummy bwl"
     echo "      client_steering_policy - Setting Client Steering Policy test"
     echo "      client_association - Client Association Control Message test"
+    echo "      link_metric_query - Link Metric Query test"
     echo "      higher_layer_data_payload_trigger - Higher layer data payload over 1905 trigger test"
 }
 main() {
