@@ -36,7 +36,7 @@ deploy() {
 # when using this, make sure no one is using opkg in the meantime!
 pgrep opkg | xargs kill -SIGINT
 # remove any previously installed prplmesh:
-opkg remove prplmesh prplmesh-dwpal prplmesh-nl80211
+opkg remove --force-depends prplmesh prplmesh-dwpal prplmesh-nl80211
 # currently opkg remove does not remove everything from /opt/prplmesh:
 rm -rf /opt/prplmesh
 opkg install -V2 "$DEST_FOLDER/$IPK_FILENAME"
@@ -77,6 +77,6 @@ main() {
     deploy "$@"
 }
 
-SSH_OPTIONS="\"-oBatchMode yes\""
+SSH_OPTIONS="\"-oBatchMode yes\" \"-oStrictHostKeyChecking no\""
 
 main "$@"
