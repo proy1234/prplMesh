@@ -49,6 +49,7 @@ main() {
             -b | --build-dir)     BUILD_DIR="$2"; shift; shift ;;
             --proxy)              SSH_OPTIONS="$SSH_OPTIONS \"-oProxyJump $2\""; shift 2 ;;
             --target)             TARGET="$2"; shift 2 ;;
+            --keep-conf)          KEEP_CONF=true; shift ;;
             -- ) shift; break ;;
             * ) err "unsupported argument $1"; usage; exit 1 ;;
         esac
@@ -77,14 +78,18 @@ main() {
         echo "scp ${BUILD_DIR}/prplmesh.tar.gz to ${TARGET}"
         eval scp "${SSH_OPTIONS} ${BUILD_DIR}/prplmesh.tar.gz ${TARGET}:/tmp/"
 
-        echo "backaup /opt/prplmesh/beerocks_agent.conf on target"
-        eval ssh "${SSH_OPTIONS} ${TARGET} cp /opt/prplmesh/config/beerocks_agent.conf /tmp/"
+        if [ "$KEEP_CONF" = "true" ]; then
+            echo "backaup /opt/prplmesh/beerocks_agent.conf on target"
+            eval ssh "${SSH_OPTIONS} ${TARGET} cp /opt/prplmesh/config/beerocks_agent.conf /tmp/"
+        fi
 
         echo "untar /tmp/prplmesh.tar.gz on target"
         eval ssh "${SSH_OPTIONS} ${TARGET} tar -C / -xzvf /tmp/prplmesh.tar.gz"
 
-        echo "restore /opt/prplmesh/beerocks_agent.conf on target"
-        eval ssh "${SSH_OPTIONS} ${TARGET} mv /tmp/beerocks_agent.conf /opt/prplmesh/config/"
+        if [ "$KEEP_CONF" = "true" ]; then
+            echo "restore /opt/prplmesh/beerocks_agent.conf on target"
+            eval ssh "${SSH_OPTIONS} ${TARGET} mv /tmp/beerocks_agent.conf /opt/prplmesh/config/"
+        fi
     
     }
 
@@ -94,7 +99,8 @@ main() {
 VERBOSE=false
 BUILD_DIR=${rootdir}/build
 DEPLOY=false
+KEEP_CONF=false
 TARGET=
-SSH_OPTIONS="\"-oBatchMode yes\""
+SSH_OPTIONS="\"-oBatchMode yes\" \"-oStrictHostKeyChecking no\""
 
 main "$@"
