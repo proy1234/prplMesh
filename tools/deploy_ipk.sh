@@ -27,15 +27,17 @@ deploy() {
     DEST_FOLDER=/tmp/prplmesh_ipks
 
     echo "Removing previous ipks"
-    eval ssh "$SSH_OPTIONS" "$TARGET" \""rm -rf $DEST_FOLDER ; mkdir -p $DEST_FOLDER\""
+    eval ssh "$SSH_OPTIONS" "$TARGET" \""rm -rf \"$DEST_FOLDER\" ; mkdir -p \"$DEST_FOLDER\"\""
     echo "Copying $IPK to $TARGET:$DEST_FOLDER/$IPK_FILENAME"
-    eval scp "${SSH_OPTIONS} ${IPK} ${TARGET}:${DEST_FOLDER}/${IPK_FILENAME}"
+    eval scp "$SSH_OPTIONS" "$IPK" "$TARGET:$DEST_FOLDER/$IPK_FILENAME"
 
     eval ssh "$SSH_OPTIONS" "$TARGET" <<EOF
 # we don't want opkg to stay locked with a previous failed invocation.
 # when using this, make sure no one is using opkg in the meantime!
 pgrep opkg | xargs kill -SIGINT
-# remove any previously installed prplmesh:
+# remove any previously installed prplmesh. Use force-depends in case
+# there are packages depending on prplmesh which will cause opkg remove
+# to fail without this:
 opkg remove --force-depends prplmesh prplmesh-dwpal prplmesh-nl80211
 # currently opkg remove does not remove everything from /opt/prplmesh:
 rm -rf /opt/prplmesh
@@ -66,7 +68,7 @@ main() {
                 shift
                 ;;
             --proxy)
-                SSH_OPTIONS="$SSH_OPTIONS \"-oProxyJump $2\""
+                SSH_OPTIONS="$SSH_OPTIONS \"-oProxyJump \"$2\"\""
                 shift 2
                 ;;
             -- ) shift; break ;;
