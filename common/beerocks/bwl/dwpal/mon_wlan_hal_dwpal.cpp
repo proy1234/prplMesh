@@ -386,9 +386,13 @@ static bool translate_nl_data_to_bwl_results(sChannelScanResults &results,
 
     // get signal strength
     if (bss[NL80211_BSS_SIGNAL_UNSPEC]) {
-        results.signal_strength_dBm = (nla_get_u8(bss[NL80211_BSS_SIGNAL_UNSPEC])) / 100;
+        //signal strength of the probe response/beacon in unspecified units, scaled to 0..100 <u8>
+        results.signal_strength_dBm =
+            static_cast<int32_t>(nla_get_u8(bss[NL80211_BSS_SIGNAL_UNSPEC]));
     } else if (bss[NL80211_BSS_SIGNAL_MBM]) {
-        results.signal_strength_dBm = (nla_get_u32(bss[NL80211_BSS_SIGNAL_MBM])) / 100;
+        //signal strength of probe response/beacon in mBm (100 * dBm) <s32>
+        results.signal_strength_dBm =
+            static_cast<int32_t>(nla_get_u32(bss[NL80211_BSS_SIGNAL_MBM])) / 100;
     }
 
     //get information elements from information-elements-buffer or from beacon
