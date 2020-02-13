@@ -321,7 +321,7 @@ int test_parser()
     header->flags().relay_indicator         = 1;
 
     auto tlv1 = msg.addClass<tlvNon1905neighborDeviceList>();
-    auto tlv2 = msg.addClass<tlvLinkMetricQuery>();
+    auto tlv2 = msg.addClass<tlvLinkMetricQuerySpecificNeighbor>();
     auto tlv3 = msg.addClass<tlvWsc>();
     auto tlv4 = msg.addClass<tlvTestVarList>();
     tlv4->add_var1(tlv4->create_var1());
@@ -357,9 +357,9 @@ int test_parser()
         LOG(ERROR) << "getClass<tlvWsc> failed";
         errors++;
     }
-    auto tlv2_ = received_message.getClass<tlvLinkMetricQuery>();
+    auto tlv2_ = received_message.getClass<tlvLinkMetricQuerySpecificNeighbor>();
     if (!tlv2_) {
-        LOG(ERROR) << "getClass<tlvLinkMetricQuery> failed";
+        LOG(ERROR) << "getClass<tlvLinkMetricQuerySpecificNeighbor> failed";
         errors++;
     }
     auto tlv1_ = received_message.getClass<tlvNon1905neighborDeviceList>();
@@ -449,8 +449,9 @@ int test_all()
     }
 
     MAPF_DBG("TLV LENGTH START: " << firstTlv->length());
-    auto secondTlv            = msg.addClass<tlvLinkMetricQuery>(); // another tlv for the example
-    secondTlv->link_metrics() = tlvLinkMetricQuery::eLinkMetricsType::RX_LINK_METRICS_ONLY;
+    auto secondTlv =
+        msg.addClass<tlvLinkMetricQuerySpecificNeighbor>(); // another tlv for the example
+    secondTlv->link_metrics_type() = eLinkMetricsType::RX_LINK_METRICS_ONLY;
 
     LOG(DEBUG) << "Start WSC M2";
     auto thirdTlv = msg.addClass<tlvWsc>();
@@ -615,7 +616,7 @@ int test_all()
 
     MAPF_DBG("size: " << received_message.getNextTlvLength());
 
-    auto tlv2 = received_message.getClass<tlvLinkMetricQuery>();
+    auto tlv2 = received_message.getClass<tlvLinkMetricQuerySpecificNeighbor>();
     if (tlv2 != nullptr) {
         MAPF_DBG("TLV2 LENGTH AFTER INIT: " << tlv2->length());
     } else {

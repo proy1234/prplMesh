@@ -74,7 +74,11 @@ std::shared_ptr<BaseClass> CmduMessageRx::parseNextTlv()
         return msg.addClass<tlv1905NeighborDevice>();
     }
     case (8): {
-        return msg.addClass<tlvLinkMetricQuery>();
+        if (8 == msg.getMessageLength()) {
+            return msg.addClass<tlvLinkMetricQuerySpecificNeighbor>();
+        } else {
+            return msg.addClass<tlvLinkMetricQueryAllNeighbors>();
+        }
     }
     case (9): {
         return msg.addClass<tlvTransmitterLinkMetric>();
