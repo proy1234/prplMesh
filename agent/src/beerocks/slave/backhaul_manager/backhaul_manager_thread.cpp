@@ -2227,34 +2227,26 @@ bool backhaul_manager::handle_1905_link_metric_query(ieee1905_1::CmduMessageRx &
     LOG(DEBUG) << "Received LINK_METRIC_QUERY_MESSAGE, mid=" << std::hex << int(mid);
 
     /**
-     * Optional fields are not currently supported by TLVF.
      * The IEEE 1905.1 standard says about the Link Metric Query TLV and the neighbor type octet
      * that "If the value is 0, then the EUI48 field is not present; if the value is 1, then the
      * EUI-48 field shall be present."
      *
+     * However, optional fields are not currently supported by TLVF.
      * As a workaround, we define two different TLVs instead of a single tlvLinkMetricQuery with an
-     * optional field. Application must then check the length of received message to know if optional
-     * field is present or not and then create an instance of one of these classes:
+     * optional field. Application must then check which TLV has been received, either
      * tlvLinkMetricQueryAllNeighbors or tlvLinkMetricQuerySpecificNeighbor.
      */
-    size_t message_length = cmdu_rx.getMessageLength();
-    LOG(INFO) << "message_length: " << std::to_string(message_length);
-
     std::shared_ptr<ieee1905_1::tlvLinkMetricQueryAllNeighbors> tlvLinkMetricQueryAllNeighbors;
     std::shared_ptr<ieee1905_1::tlvLinkMetricQuerySpecificNeighbor>
         tlvLinkMetricQuerySpecificNeighbor;
-    if (8 == message_length) {
+
+    tlvLinkMetricQueryAllNeighbors =
+        cmdu_rx.getClass<ieee1905_1::tlvLinkMetricQueryAllNeighbors>();
+    if (!tlvLinkMetricQueryAllNeighbors) {
         tlvLinkMetricQuerySpecificNeighbor =
             cmdu_rx.getClass<ieee1905_1::tlvLinkMetricQuerySpecificNeighbor>();
         if (!tlvLinkMetricQuerySpecificNeighbor) {
-            LOG(ERROR) << "getClass ieee1905_1::tlvLinkMetricQuerySpecificNeighbor failed";
-            return false;
-        }
-    } else {
-        tlvLinkMetricQueryAllNeighbors =
-            cmdu_rx.getClass<ieee1905_1::tlvLinkMetricQueryAllNeighbors>();
-        if (!tlvLinkMetricQueryAllNeighbors) {
-            LOG(ERROR) << "getClass ieee1905_1::tlvLinkMetricQueryAllNeighbors failed";
+            LOG(ERROR) << "getClass ieee1905_1::tlvLinkMetricQueryAllNeighbors and ieee1905_1::tlvLinkMetricQuerySpecificNeighbor failed";
             return false;
         }
     }
@@ -2281,11 +2273,12 @@ bool backhaul_manager::handle_1905_link_metric_query(ieee1905_1::CmduMessageRx &
     ieee1905_1::eLinkMetricsType link_metrics_type;
 
     if (tlvLinkMetricQuerySpecificNeighbor) {
+    	/**
+    	 * If tlvLinkMetricQuerySpecificNeighbor has been included in message, we will be
+    	 * permissive enough to allow it specify ALL_NEIGHBORS and if so, we will ignore
+    	 * the field containing the MAC address of neighbor.
+    	 */
         neighbor_type = tlvLinkMetricQuerySpecificNeighbor->neighbor_type();
-        if (ieee1905_1::eLinkMetricNeighborType::SPECIFIC_NEIGHBOR != neighbor_type) {
-            LOG(ERROR) << "Unexpected neighbor type: " << std::hex << int(neighbor_type);
-            return false;
-        }
         neighbor_al_mac   = tlvLinkMetricQuerySpecificNeighbor->mac_al_1905_device();
         link_metrics_type = tlvLinkMetricQuerySpecificNeighbor->link_metrics_type();
     } else {

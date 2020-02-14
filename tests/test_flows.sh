@@ -241,7 +241,9 @@ test_ap_capability_query() {
 test_link_metric_query() {
     status "test link metric query"
     check_error=0
-    check send_CAPI_1905 ${GATEWAY} $mac_agent1 0x0005 "tlv_type,0x08,tlv_length,0x0002,tlv_value,0x00 0x02"
+    status ${GATEWAY} 
+    #check send_CAPI_1905 ${GATEWAY} $mac_agent1 0x0005 "tlv_type,0x08,tlv_length,0x0002,tlv_value,0x00 0x02"
+    check send_CAPI_1905 ${GATEWAY} $mac_agent1 0x0005 "tlv_type,0x08,tlv_length,0x0008,tlv_value,0x01 {$mac_agent2} 0x02"
     sleep 1
     
     dbg "Confirming link metric query has been received on agent"
