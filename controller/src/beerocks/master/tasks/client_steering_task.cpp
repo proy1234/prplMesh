@@ -250,11 +250,12 @@ void client_steering_task::steer_sta()
 void client_steering_task::handle_event(int event_type, void *obj)
 {
     if (event_type == STA_CONNECTED) {
-        TASK_LOG(DEBUG) << "steering successful for sta " << sta_mac;
+        TASK_LOG(DEBUG) << "sta connected after steering attempt with imminent flag = " << disassoc_imminent
+                        << " client mac = " << sta_mac;
         steering_success = true;
     } else if (event_type == STA_DISCONNECTED) {
-        TASK_LOG(DEBUG) << "sta " << sta_mac
-                        << " disconnected after successful steering, proceeding to unblock";
+        TASK_LOG(DEBUG) << "sta disconnected after steering attempt with imminent flag = " << disassoc_imminent
+                        << " client mac = " << sta_mac << ",proceeding to unblock";
     } else if (event_type == BSS_TM_REQUEST_REJECTED) {
         TASK_LOG(DEBUG) << "sta " << sta_mac << " rejected BSS_TM request";
         if (disassoc_imminent) {

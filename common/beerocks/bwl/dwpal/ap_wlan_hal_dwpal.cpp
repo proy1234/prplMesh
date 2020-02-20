@@ -843,21 +843,22 @@ bool ap_wlan_hal_dwpal::sta_allow(const std::string &mac, const std::string &bss
 
 bool ap_wlan_hal_dwpal::sta_deny(const std::string &mac, const std::string &bssid)
 {
-    // Check if the requested BSSID is part of this radio
-    for (const auto &vap : m_radio_info.available_vaps) {
-        if (vap.second.mac == bssid) {
+    auto radio_mac = get_radio_mac();
+    
+    // Check if this radio is the requested BSSID.
+    if (radio_mac == bssid) {
+    LOG(DEBUG) << "Sending deny to all vaps to sta mac=" << mac << " on radio mac=" << bssid;
+        for (const auto &vap : m_radio_info.available_vaps) {        
             // Send the command
             std::string cmd = "DENY_MAC " + mac + " reject_sta=33";
             if (!dwpal_send_cmd(cmd, vap.first)) {
-                LOG(ERROR) << "sta_allow() failed!";
+                LOG(ERROR) << "sta_deny() failed!";
                 return false;
             }
-
-            return true;
         }
     }
 
-    // If the requested BSSID is not part of this radio, return silently
+    // If the requested BSSID is not this radio, return silently
     return true;
 }
 

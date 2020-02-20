@@ -817,6 +817,7 @@ void optimal_path_task::work()
         //add current ap
         hostap_candidates.push_back({current_hostap, false});
 
+        //todo not clear 
         if (database.settings_client_band_steering()) {
             auto hostap_siblings = database.get_node_siblings(current_hostap);
             for (auto sibling : hostap_siblings) {

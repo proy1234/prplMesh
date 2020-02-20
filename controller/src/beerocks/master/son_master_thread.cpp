@@ -1004,7 +1004,7 @@ bool master_thread::handle_cmdu_1905_client_steering_btm_report_message(
     const std::string &src_mac, ieee1905_1::CmduMessageRx &cmdu_rx)
 {
     auto mid = cmdu_rx.getMessageId();
-    LOG(INFO) << "Received CLIENT_STEERING_BTM_REPORT_MESSAGE, mid=" << std::hex << int(mid);
+    LOG(INFO) << "Received CLIENT_STEERING_BTM_REPORT_MESSAGE, mid=" << std::hex << int(mid) << std::dec;
 
     auto steering_btm_report = cmdu_rx.getClass<wfa_map::tlvSteeringBTMReport>();
     if (!steering_btm_report) {
@@ -2671,7 +2671,7 @@ bool master_thread::handle_cmdu_control_message(const std::string &src_mac,
 
         LOG_CLI(DEBUG,
                 "measurement change notification: "
-                    << client_mac << " (sta) <-> (ap) " << ap_mac << " rx_rssi=" << rx_rssi
+                    << client_mac << " (sta) <-> (ap) " << hostap_mac << " vap=" << ap_mac << " rx_rssi=" << rx_rssi
                     << " phy_rate_100kb (RX|TX)=" << int(notification->params().rx_phy_rate_100kb)
                     << " | " << int(notification->params().tx_phy_rate_100kb));
 
@@ -2679,7 +2679,7 @@ bool master_thread::handle_cmdu_control_message(const std::string &src_mac,
             (database.get_node_state(client_mac) == beerocks::STATE_CONNECTED) &&
             (!database.get_node_handoff_flag(client_mac)) && is_parent) {
 
-            database.set_node_cross_rx_rssi(client_mac, ap_mac, notification->params().rx_rssi,
+            database.set_node_cross_rx_rssi(client_mac, hostap_mac, notification->params().rx_rssi,
                                             notification->params().rx_packets);
             database.set_node_cross_tx_phy_rate_100kb(client_mac,
                                                       notification->params().tx_phy_rate_100kb);
