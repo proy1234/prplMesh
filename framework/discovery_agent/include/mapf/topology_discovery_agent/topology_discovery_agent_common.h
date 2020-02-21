@@ -19,7 +19,7 @@ enum topology_discovery_agent_common_macros {
     MAX_NAME_LEN        = 64,
     MAX_IPv4_ADDR_LEN   = 4,
     MAX_IPv6_ADDR_LEN   = 16,
-    MAX_SSID_LEN        = 6,
+    MAX_SSID_LEN        = 9,
     DA_DISC_TIMER_INTVL = 60,
     MAX_NEIGH_SUPPORTED = 10,
     MAX_DATA_SIZE       = 1024,
