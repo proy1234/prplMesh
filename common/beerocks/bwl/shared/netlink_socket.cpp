@@ -101,7 +101,7 @@ bool netlink_socket::send_receive_msg(std::function<bool(struct nl_msg *msg)> ms
     // Passing a lambda with capture is not supported for standard C function
     // pointers. As a workaround, we create a static (but thread local) wrapper
     // function that calls the capturing lambda function.
-    static __thread std::function<int(struct nl_msg * msg, void *arg)> nl_handler_cb_wrapper;
+    static thread_local std::function<int(struct nl_msg * msg, void *arg)> nl_handler_cb_wrapper;
     nl_handler_cb_wrapper = [&](struct nl_msg *msg, void *arg) -> int {
         if (!msg_handle(msg)) {
             LOG(ERROR) << "User's netlink handler function failed!";
