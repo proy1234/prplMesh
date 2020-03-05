@@ -15,27 +15,20 @@
 
 namespace bwl {
 
-netlink_socket::netlink_socket(int protocol) : m_protocol(protocol)
+netlink_socket::netlink_socket(int protocol)
+    : m_nl_socket(nl_socket_alloc(), nl_socket_free), m_protocol(protocol)
 {
-    // Allocate the netlink socket structure
-    m_nl_socket = nl_socket_alloc();
     if (!m_nl_socket) {
         LOG(ERROR) << "Failed to allocate netlink socket!";
     }
 }
 
-netlink_socket::~netlink_socket()
-{
-    // Deallocate the netlink socket structure
-    if (m_nl_socket) {
-        nl_socket_free(m_nl_socket);
-    }
-}
+netlink_socket::~netlink_socket() {}
 
 bool netlink_socket::connect()
 {
     // Connect the socket
-    if (nl_connect(m_nl_socket, m_protocol) != 0) {
+    if (nl_connect(m_nl_socket.get(), m_protocol) != 0) {
         LOG(ERROR) << "Failed to connect netlink socket!";
         return false;
     }
@@ -46,7 +39,7 @@ bool netlink_socket::connect()
 void netlink_socket::close()
 {
     // Terminate connection and close socket
-    nl_close(m_nl_socket);
+    nl_close(m_nl_socket.get());
 }
 
 bool netlink_socket::send_receive_msg(std::function<bool(struct nl_msg *msg)> msg_create,
@@ -127,7 +120,7 @@ bool netlink_socket::send_receive_msg(std::function<bool(struct nl_msg *msg)> ms
               nullptr); // response handler
 
     // Send the netlink message
-    int rc = nl_send_auto_complete(m_nl_socket, nl_message.get());
+    int rc = nl_send_auto_complete(m_nl_socket.get(), nl_message.get());
     if (rc < 0) {
         LOG(ERROR) << "Failed to send netlink message! Error: " << rc;
         return false;
@@ -137,7 +130,7 @@ bool netlink_socket::send_receive_msg(std::function<bool(struct nl_msg *msg)> ms
     // Note that call to nl_recvmsgs() is blocking and loop terminates when one of the callback
     // functions sets error to 0 (ok) or to a value lower than 0 (error)
     while (error > 0) {
-        nl_recvmsgs(m_nl_socket, nl_callback.get());
+        nl_recvmsgs(m_nl_socket.get(), nl_callback.get());
     }
 
     // Return true on success and false otherwise

@@ -9,6 +9,7 @@
 #define __BWL_NETLINK_SOCKET_H__
 
 #include <functional>
+#include <memory>
 
 /**
  * Forward declarations
@@ -55,20 +56,6 @@ public:
     virtual ~netlink_socket();
 
     /**
-     * @brief Copy constructor.
-     *
-     * Deleted to prevent object copy.
-     */
-    netlink_socket(const netlink_socket &) = delete;
-
-    /**
-     * @brief Assignment operator.
-     *
-     * Deleted to prevent object copy.
-     */
-    void operator=(const netlink_socket &) = delete;
-
-    /**
      * @brief Connects the Netlink socket.
      *
      * Creates a new Netlink socket and binds it to the protocol specified in class constructor.
@@ -111,7 +98,7 @@ protected:
      * This member is protected so derived classes can use it to extend or refine the
      * functionality provided by this class.
      */
-    struct nl_sock *m_nl_socket;
+    std::unique_ptr<struct nl_sock, void (*)(struct nl_sock *)> m_nl_socket;
 
 private:
     /**

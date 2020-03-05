@@ -17,7 +17,7 @@
 #define NETLINK_BUFFER_SIZE (8192)
 
 #ifndef NL_AUTO_PORT
-    #define NL_AUTO_PORT 0
+#define NL_AUTO_PORT 0
 #endif
 
 namespace bwl {
@@ -26,7 +26,7 @@ nl80211_socket::nl80211_socket() : nl_genl_socket()
 {
     if (m_nl_socket) {
         // Increase the socket's internal buffer size
-        nl_socket_set_buffer_size(m_nl_socket, NETLINK_BUFFER_SIZE, NETLINK_BUFFER_SIZE);
+        nl_socket_set_buffer_size(m_nl_socket.get(), NETLINK_BUFFER_SIZE, NETLINK_BUFFER_SIZE);
     }
 }
 
@@ -41,7 +41,7 @@ bool nl80211_socket::connect()
     if (result) {
         const char *family_name = "nl80211";
 
-        m_family_id = genl_ctrl_resolve(m_nl_socket, family_name);
+        m_family_id = genl_ctrl_resolve(m_nl_socket.get(), family_name);
         if (0 > m_family_id) {
             LOG(ERROR) << "'" << family_name << "' family not found!";
             result = false;
