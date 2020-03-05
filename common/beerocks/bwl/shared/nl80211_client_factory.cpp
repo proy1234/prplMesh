@@ -19,7 +19,7 @@ namespace bwl {
 std::unique_ptr<nl80211_client> nl80211_client_factory::create_instance()
 {
     // Create NL80211 socket to communicate with WiFi driver
-    std::shared_ptr<nl80211_socket> socket = std::make_shared<bwl::nl80211_socket>();
+    auto socket = std::make_unique<bwl::nl80211_socket>();
 
     // Connect NL80211 socket (it will be automatically closed when it is not needed any more)
     if (!socket->connect()) {
@@ -28,7 +28,7 @@ std::unique_ptr<nl80211_client> nl80211_client_factory::create_instance()
     }
 
     // Create NL80211 client to send standard NL80211 commands to WiFi driver using NL80211 socket
-    return std::make_unique<nl80211_client_impl>(socket);
+    return std::make_unique<nl80211_client_impl>(std::move(socket));
 }
 
 } // namespace bwl

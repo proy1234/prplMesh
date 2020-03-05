@@ -19,8 +19,8 @@
 
 namespace bwl {
 
-nl80211_client_impl::nl80211_client_impl(const std::shared_ptr<nl80211_socket> &socket)
-    : m_socket(socket)
+nl80211_client_impl::nl80211_client_impl(std::unique_ptr<nl80211_socket> socket)
+    : m_socket(std::move(socket))
 {
 }
 

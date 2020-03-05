@@ -35,7 +35,7 @@ public:
      * @param[in] socket NL80211 socket to send messages and receive responses to/from the WiFi
      * driver.
      */
-    explicit nl80211_client_impl(const std::shared_ptr<nl80211_socket> &socket);
+    explicit nl80211_client_impl(std::unique_ptr<nl80211_socket> socket);
 
     /**
      * @brief Class destructor.
@@ -61,7 +61,7 @@ private:
     /**
      * NL80211 socket to send messages and receive responses to/from the WiFi driver.
      */
-    std::shared_ptr<nl80211_socket> m_socket;
+    std::unique_ptr<nl80211_socket> m_socket;
 };
 
 } // namespace bwl
