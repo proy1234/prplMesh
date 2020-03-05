@@ -17,6 +17,7 @@ nl80211_client_dummy::~nl80211_client_dummy() {}
 bool nl80211_client_dummy::get_sta_info(const std::string &local_interface_name,
                                         const sMacAddr &sta_mac_address, sNl80211StaInfo &sta_info)
 {
+    // Suppress "unused parameter" warning
     (void)local_interface_name;
     (void)sta_mac_address;
 
