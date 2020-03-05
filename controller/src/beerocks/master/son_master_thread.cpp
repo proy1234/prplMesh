@@ -1933,6 +1933,8 @@ bool master_thread::handle_intel_slave_join(
 
     database.set_hostap_supported_channels(radio_mac, notification->hostap().supported_channels,
                                            message::SUPPORTED_CHANNELS_LENGTH);
+    LOG(TRACE) << "#IZE# " << " setting the following supported channele: ["
+               << database.get_hostap_supported_channels_string(radio_mac) << "]";
 
     if (database.get_node_5ghz_support(radio_mac)) {
         if (notification->low_pass_filter_on()) {
