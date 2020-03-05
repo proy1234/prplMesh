@@ -18,9 +18,7 @@ namespace bwl {
 netlink_socket::netlink_socket(int protocol)
     : m_nl_socket(nl_socket_alloc(), nl_socket_free), m_protocol(protocol)
 {
-    if (!m_nl_socket) {
-        LOG(ERROR) << "Failed to allocate netlink socket!";
-    }
+    LOG_IF(!m_nl_socket, ERROR) << "Failed to allocate netlink socket!";
 }
 
 netlink_socket::~netlink_socket() {}
