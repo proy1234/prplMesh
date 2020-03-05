@@ -46,21 +46,11 @@ bool netlink_socket::send_receive_msg(std::function<bool(struct nl_msg *msg)> ms
                                       std::function<bool(struct nl_msg *msg)> msg_handle)
 {
     // The Netlink message to send
-    std::shared_ptr<nl_msg> nl_message =
-        std::shared_ptr<struct nl_msg>(nlmsg_alloc(), [](struct nl_msg *obj) {
-            if (obj) {
-                nlmsg_free(obj);
-            }
-        });
+    std::unique_ptr<nl_msg, void (*)(nl_msg *)> nl_message(nlmsg_alloc(), nlmsg_free);
     LOG_IF(!nl_message, FATAL) << "Failed creating netlink message!";
 
     // The Netlink callback set
-    std::shared_ptr<nl_cb> nl_callback =
-        std::shared_ptr<struct nl_cb>(nl_cb_alloc(NL_CB_DEFAULT), [](struct nl_cb *obj) {
-            if (obj) {
-                nl_cb_put(obj);
-            }
-        });
+    std::unique_ptr<nl_cb, void (*)(nl_cb *)> nl_callback(nl_cb_alloc(NL_CB_DEFAULT), nl_cb_put);
     LOG_IF(!nl_callback, FATAL) << "Failed creating netlink callback!";
 
     // Termination flag for the loop that receives the response messages. Possible values are:
