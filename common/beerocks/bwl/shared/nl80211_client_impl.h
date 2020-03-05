@@ -55,7 +55,7 @@ public:
      * @return True on success and false otherwise.
      */
     virtual bool get_sta_info(const std::string &local_interface_name,
-                              const sMacAddr &sta_mac_address, sNl80211StaInfo &sta_info) override;
+                              const sMacAddr &sta_mac_address, sStaInfo &sta_info) override;
 
 private:
     /**

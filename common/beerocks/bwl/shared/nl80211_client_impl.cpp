@@ -27,7 +27,7 @@ nl80211_client_impl::nl80211_client_impl(std::unique_ptr<nl80211_socket> socket)
 nl80211_client_impl::~nl80211_client_impl() {}
 
 bool nl80211_client_impl::get_sta_info(const std::string &local_interface_name,
-                                       const sMacAddr &sta_mac_address, sNl80211StaInfo &sta_info)
+                                       const sMacAddr &sta_mac_address, sStaInfo &sta_info)
 {
     static struct nla_policy stats_policy[NL80211_STA_INFO_MAX + 1];
     stats_policy[NL80211_STA_INFO_INACTIVE_TIME] = {NLA_U32, 0, 0};

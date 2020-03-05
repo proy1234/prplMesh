@@ -15,26 +15,6 @@
 namespace bwl {
 
 /**
- * @brief Station information
- *
- * Information obtained with NL80211_CMD_GET_STATION command through a NL80211 socket.
- * See NL80211_STA_INFO_* in <linux/nl80211.h> for a description of each field.
- */
-struct sNl80211StaInfo {
-    uint32_t inactive_time_ms   = 0;
-    uint32_t rx_bytes           = 0;
-    uint32_t rx_packets         = 0;
-    uint32_t tx_bytes           = 0;
-    uint32_t tx_packets         = 0;
-    uint32_t tx_retries         = 0;
-    uint32_t tx_failed          = 0;
-    uint8_t signal_dBm          = 0;
-    uint8_t signal_avg_dBm      = 0;
-    uint16_t tx_bitrate_100kbps = 0;
-    uint16_t rx_bitrate_100kbps = 0;
-};
-
-/**
  * @brief NL80211 client interface.
  *
  * This interface lists the methods to read and write wireless hardware status and configuration
@@ -54,6 +34,26 @@ class nl80211_client {
 
 public:
     /**
+     * @brief Station information
+     *
+     * Information obtained with NL80211_CMD_GET_STATION command through a NL80211 socket.
+     * See NL80211_STA_INFO_* in <linux/nl80211.h> for a description of each field.
+     */
+    struct sStaInfo {
+        uint32_t inactive_time_ms   = 0;
+        uint32_t rx_bytes           = 0;
+        uint32_t rx_packets         = 0;
+        uint32_t tx_bytes           = 0;
+        uint32_t tx_packets         = 0;
+        uint32_t tx_retries         = 0;
+        uint32_t tx_failed          = 0;
+        uint8_t signal_dBm          = 0;
+        uint8_t signal_avg_dBm      = 0;
+        uint16_t tx_bitrate_100kbps = 0;
+        uint16_t rx_bitrate_100kbps = 0;
+    };
+
+    /**
      * @brief Class destructor.
      */
     virtual ~nl80211_client() = default;
@@ -71,7 +71,7 @@ public:
      * @return True on success and false otherwise.
      */
     virtual bool get_sta_info(const std::string &local_interface_name,
-                              const sMacAddr &sta_mac_address, sNl80211StaInfo &sta_info) = 0;
+                              const sMacAddr &sta_mac_address, sStaInfo &sta_info) = 0;
 
     // TODO: add remaining methods
 };
