@@ -14,7 +14,10 @@
 
 #include <easylogging++.h>
 
-#define NETLINK_BUFFER_SIZE (8192)
+/**
+ * Receive and transmit socket buffer size in bytes.
+ */
+static constexpr int netlink_buffer_size = 8192;
 
 /**
  * Will cause the netlink port to be set to the port assigned to the netlink socket just before
@@ -34,7 +37,7 @@ nl80211_socket::nl80211_socket() : nl_genl_socket()
 {
     if (m_nl_socket) {
         // Increase the socket's internal buffer size
-        nl_socket_set_buffer_size(m_nl_socket.get(), NETLINK_BUFFER_SIZE, NETLINK_BUFFER_SIZE);
+        nl_socket_set_buffer_size(m_nl_socket.get(), netlink_buffer_size, netlink_buffer_size);
     }
 }
 
