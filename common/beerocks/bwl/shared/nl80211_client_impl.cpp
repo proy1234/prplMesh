@@ -46,6 +46,11 @@ bool nl80211_client_impl::get_sta_info(const std::string &local_interface_name,
     rate_policy[NL80211_RATE_INFO_BITRATE]   = {NLA_U16, 0, 0};
     rate_policy[NL80211_RATE_INFO_BITRATE32] = {NLA_U32, 0, 0};
 
+    if (!m_socket) {
+        LOG(ERROR) << "Socket is NULL!";
+        return false;
+    }
+
     // Get the interface index for given interface name
     int iface_index = if_nametoindex(local_interface_name.c_str());
     if (0 == iface_index) {
