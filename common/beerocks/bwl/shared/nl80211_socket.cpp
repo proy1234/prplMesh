@@ -16,6 +16,14 @@
 
 #define NETLINK_BUFFER_SIZE (8192)
 
+/**
+ * Will cause the netlink port to be set to the port assigned to the netlink socket just before
+ * sending the message off.
+ *
+ * This macro is already defined in <netlink/msg.h> for some platforms, but not for others maybe
+ * because it was introduced at a later version of the library being used. Thus we define the macro
+ * if it's not already being defined.
+ */
 #ifndef NL_AUTO_PORT
 #define NL_AUTO_PORT 0
 #endif
