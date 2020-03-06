@@ -740,7 +740,11 @@ bool master_thread::handle_cmdu_1905_autoconfiguration_WSC(const std::string &sr
     for (const auto &bss_info_conf : bss_info_confs) {
         // Check if the radio supports it
         if (!son_actions::has_matching_operating_class(*radio_basic_caps, bss_info_conf)) {
-            LOG(INFO) << "Skipping " << bss_info_conf.ssid << " due to operclass mismatch";
+            LOG(INFO) << "Skipping " << bss_info_conf.ssid << " due to operclass mismatch."
+                      << " bss info op_class: ";
+            for (const auto& c: bss_info_conf.operating_class) {
+                LOG(INFO)  << "op_class=" << std::to_string(c);
+            }
             continue;
         }
         if (!(m1->auth_type_flags() & uint16_t(bss_info_conf.authentication_type))) {
