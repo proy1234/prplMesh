@@ -811,6 +811,9 @@ public:
         return settings.client_optimal_path_roaming_prefer_signal_strength;
     }
 
+    bool is_prplmesh(const std::string &mac);
+    void set_prplmesh(const std::string &mac);
+
     //
     // master_thread context
     //

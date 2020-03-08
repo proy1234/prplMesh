@@ -3599,3 +3599,16 @@ void db::clear_vap_list()
 }
 
 const std::shared_ptr<db::vaps_list_t> db::get_vap_list() { return m_vap_list; }
+
+bool db::is_prplmesh(const std::string &mac)
+{
+    auto node = get_node(mac);
+    return node ? node.get()->is_prplmesh : false;
+}
+void db::set_prplmesh(const std::string &mac)
+{
+    if (!get_node(mac)) {
+        add_node(network_utils::mac_from_string(mac));
+    }
+    get_node(mac).get()->is_prplmesh = true;
+}
